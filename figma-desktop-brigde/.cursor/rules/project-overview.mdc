@@ -1,0 +1,556 @@
+---
+description: "Enterprise Figma System Rules — Naming, Atomic Design, Auto Layout, Responsive Structure, Flows, Prototype, Tokens, and Color Governance."
+alwaysApply: true
+---
+Always ask for approval to do any action
+
+# 1- SCOPE — RENAMING RULE (FIGMA)
+
+When I say “rename”, it refers exclusively to the Figma node attribute `.name`.
+
+Never rename:
+- The Figma file name
+- The Figma page name
+
+Only rename:
+- Frames
+- Components
+- Groups
+- Instances
+- Auto Layout containers
+
+---
+
+# 2- LAYER NAMING STANDARD
+
+## 2.1 Non-variable Naming
+
+All non-variable layer names must follow:
+
+- PascalCase
+- First letter uppercase
+- No spaces
+- No snake_case
+- No kebab-case
+- No generic names (Component1, Frame23, Test)
+
+Wrong:
+- campaign name
+- campaign_name
+- campaign-name
+
+Correct:
+- CampaignName
+- PrimaryButton
+- HeaderContainer
+
+---
+
+## 2.2 Variables / Placeholders
+
+All dynamic variables must follow:
+
+{PascalCase}
+
+Rules:
+- First letter uppercase
+- No spaces
+- No snake_case
+- No lowercase inside braces
+
+Valid:
+- {Text}
+- {Count}
+- {Partner}
+- {Name}
+- {CampaignName}
+
+### Normalization
+
+If found:
+- text
+- { text }
+- {count}
+- partner_name
+
+Transform into:
+- {Text}
+- {Count}
+- {PartnerName}
+
+### Mixed content
+
+Keep pattern:
+- {Count} Smash partners
+- Hello {Name}
+- {Partner} activated your campaign
+
+---
+
+# 3- ATOMIC DESIGN + PRODUCT CONTEXT STRUCTURE
+
+All screens and components must follow:
+
+Context/Level/Name
+
+## 3.1 Mandatory Context Prefix
+
+Every screen/component must start with:
+
+- Shop
+- Share
+- Giftee
+
+Never create without prefix.
+
+Examples:
+- Shop/Page/PageInformation
+- Share/Molecule/ButtonPrimary
+- Giftee/Organism/HeaderNavigation
+
+---
+
+## 3.2 Atomic Levels
+
+Use strictly:
+
+- Atom
+- Molecule
+- Organism
+- Template
+- Page
+
+Always name by purpose, never by visual style.
+
+Wrong:
+- Shop/Atom/PurpleButton
+
+Correct:
+- Shop/Atom/ButtonPrimary
+
+Never mix contexts.
+Never create levels outside Atomic Design.
+
+---
+
+# 4- USER FLOW ARCHITECTURE
+
+Every flow must include:
+
+1. Entry screen
+2. User action
+3. Intermediate state (Loading if applicable)
+4. Success state
+5. Error state
+
+Always consider:
+- Happy path
+- Error path
+- Empty state
+- Cancellation
+- Back navigation
+
+Name flows clearly:
+- Flow - CreateCampaign
+- Flow - SendError
+- Flow - PartnerActivation
+
+Never use generic names.
+
+---
+
+# 5- ADVANCED PROTOTYPE SYSTEM
+
+## Navigation
+
+- Navigate To → real screen change
+- Open Overlay → modals/dropdowns
+- Swap Overlay → internal modal flow
+- Always define close behavior
+- Avoid redundant navigation
+
+## Transitions
+
+- Smart Animate when structure matches
+- Instant only if no continuity
+- Duration: 200–400ms
+- Easing: Ease In-Out
+- Do not animate all properties
+- Prioritize: Opacity, Position, Scale, Auto Layout resize
+
+## Mandatory States
+
+Always create:
+- Default
+- Hover
+- Pressed
+- Focus
+- Disabled
+- Loading
+- Success
+- Error
+- Empty
+
+Never create only Default.
+
+## Microinteractions
+
+- Reinforce hierarchy
+- Immediate feedback
+- Realistic loading
+- No excessive motion
+
+## Flow Realism
+
+Simulate:
+- Action
+- Processing
+- Result
+- Failure
+
+No incomplete flows.
+
+---
+
+# 6- AUTO LAYOUT — MANDATORY SYSTEM
+
+Auto Layout is required in all structural elements.
+
+Never create:
+- Frames without Auto Layout
+- Components without Auto Layout
+- Static containers
+
+## Structural Requirements
+
+All structures must:
+- Be Frame with Auto Layout
+- Have defined padding
+- Have defined gap
+- Use proper alignment
+
+## Buttons
+
+- Horizontal Auto Layout
+- Consistent padding
+- Centered content
+- Content-driven resizing
+
+## Containers
+
+- Vertical or horizontal Auto Layout
+- No manual positioning
+- Dynamic resizing support
+
+## Responsiveness
+
+- Use Hug when appropriate
+- Use Fill Container when appropriate
+- Avoid fixed sizes without reason
+- Predictable resizing behavior
+
+Absolute positioning only if technically unavoidable.
+
+---
+
+# 7- RESPONSIVE STRUCTURE HIERARCHY
+
+Mandatory hierarchy:
+
+Root  
+→ Container  
+→ Stack  
+→ Block  
+→ Element  
+
+Definitions:
+
+- Root → Background, radius, shadow. No loose content.
+- Container → Width constraint + horizontal padding.
+- Stack → Auto Layout defining direction + gap.
+- Block → Logical grouping.
+- Element → Final UI element.
+
+## Responsive Rules
+
+Container:
+- width: 100%
+- max-width via token when available
+- responsive horizontal padding
+
+Stack:
+- Always Auto Layout
+- Always gap (no margin spacing)
+- Default vertical
+- Horizontal only if required
+- Horizontal must allow wrap
+
+Children:
+- Prefer flexible sizing
+- Avoid fixed widths
+- Icons/avatars may be fixed
+- Images scale proportionally
+- Text wraps naturally
+
+Figma → Code mapping:
+- Vertical → flex-col
+- Horizontal → flex-row + wrap
+- Spacing → gap
+- Fill → Fill primary axis
+- Hug → Hug
+- Never fake spacing with empty frames
+
+---
+
+# 8- GLOBAL DESIGN TOKEN SYSTEM
+
+All layouts, components, screens, and prototypes MUST use system tokens.
+
+Hardcoded values are forbidden.
+
+---
+
+## 8.1 Dimension Tokens (dimension/*)
+
+Use for:
+- Padding
+- Gap
+- Margin (if needed)
+- Width/Height
+- Border radius
+- Layout spacing
+
+Preferred scale:
+dimension-1 (4)
+dimension-2 (8)
+dimension-3 (12)
+dimension-4 (16)
+dimension-6 (24)
+dimension-8 (32)
+dimension-9 (40)
+dimension-10 (64)
+
+*-5 only if strictly necessary.
+
+---
+
+## 8.2 Size Tokens (size/*)
+
+Use for:
+- Icons
+- Button min-height
+- Avatars
+- Fixed structural sizes
+
+Never misuse dimension when semantic size is intended.
+
+---
+
+## 8.3 Typography Tokens
+
+Always use:
+
+Font:
+- Typography.fontFamily.roboto
+
+Weight:
+- regular
+- medium
+- semibold
+- bold
+
+Font size:
+- xs → 8xl
+
+Line height:
+- xs → 9xl
+
+Letter spacing:
+- tightest
+- tighter
+- tight
+- normal
+
+No arbitrary typography values allowed.
+
+---
+
+# 9- COLOR GOVERNANCE (LIGHT / DARK)
+
+Always use semantic tokens.
+
+Never use HEX or manual rgba.
+
+Mode:
+- Light → color.light.color.*
+- Dark → color.dark.color.*
+- If unspecified → assume Light
+
+Use semantic groups:
+
+- background.*
+- surface.*
+- text.*
+- border.*
+- action.*
+- icon.*
+- overlay.*
+
+States mapping:
+
+- Hover → bgHover / overlay.hover
+- Pressed → bgPressed / overlay.pressed
+- Focus → border.focus
+- Disabled → disabled tokens
+- Feedback → feedback tokens
+
+Never mix Light and Dark tokens.
+
+---
+
+# 10- COLOR REPLACEMENT ENFORCEMENT
+
+If any color is NOT part of the system:
+
+1. Replace with closest semantic token.
+2. Never keep manual color.
+3. Never create new variation without approval.
+
+Selection priority:
+
+1. action.*
+2. text.*
+3. border.*
+4. background.* or surface.*
+5. overlay.*
+6. icon.*
+
+If mode is not defined → assume Light.
+
+Never invent colors.
+Never mix modes.
+Never keep raw hex.
+
+**Correção global de tokens:** Ajustes em todo o documento (todas as páginas) para tokens de cor sem referência ou primitivos → semânticos só devem ser aplicados quando o usuário solicitar explicitamente (ex.: "ajuste o documento de forma global"). Não executar correção global em lote por padrão; para escopo menor use apenas a página atual ou a seleção.
+---
+description: "Command: /rename — Rename only node.name."
+alwaysApply: false
+---
+
+Trigger: /rename
+
+Only modify:
+- Figma node `.name`
+
+Do NOT modify:
+- File name
+- Page name
+- Layout
+- Tokens
+- Styles
+- Prototype
+- Text content
+- Structure
+
+Apply naming rules defined in governance.
+---
+description: "Command: /tokens — Enforce token system strictly."
+alwaysApply: false
+---
+
+Trigger: /tokens
+
+Replace:
+- Hardcoded spacing
+- Hardcoded size
+- Hardcoded typography
+- Hardcoded colors
+
+With:
+- dimension/*
+- size/*
+- Typography/*
+- color.{mode}.color.*
+
+Follow semantic priority defined in governance.
+Never invent tokens.
+---
+description: "Command: /prototype — Apply advanced prototype system."
+alwaysApply: false
+---
+
+Trigger: /prototype
+
+Enforce:
+- Navigation rules
+- Smart Animate logic
+- Mandatory states
+- Full flow simulation
+- Realistic loading
+- Error handling
+
+Follow governance standards.
+---
+description: "Command: /flows — Structured flow architecture mode."
+alwaysApply: false
+---
+
+Trigger: /flows
+
+Enforce:
+- Entry
+- Action
+- Loading
+- Success
+- Error
+- Empty state
+- Back navigation
+
+Follow naming and structure governance.
+---
+description: "Command: /structure — Responsive hierarchy enforcement."
+alwaysApply: false
+---
+
+Trigger: /structure
+
+Enforce hierarchy:
+Root → Container → Stack → Block → Element
+
+Follow Auto Layout and responsive rules from governance.
+---
+description: "Tokens quebrados — Correção por prompt (global, página, componente, elemento, layer)."
+alwaysApply: true
+---
+
+# TOKENS QUEBRADOS — CORREÇÃO VIA PROMPT
+
+Quando o usuário pedir para **corrigir**, **mudar** ou **revincular** tokens quebrados, executar via **comandos do plugin (MCP)**, não pela UI. Aplicar no escopo solicitado.
+
+**Comando preferido:** **`run_recursive_token_fix`** (nodeId opcional; sem nodeId usa seleção atual). Corrige recursivamente tokens quebrados, hardcoded e overrides de estilo, sem precisar colar mapa de tokens.
+
+**Lista de comandos MCP:** ver COMMANDS.md na raiz do projeto e MCP-INTEGRATION.md para tools de token/bindings.
+
+**Sempre seguir também a regra `figma-token-integrity`:** usar escopo completo (component set + todas as variantes + árvore inteira). Se não usar `run_recursive_token_fix`, incluir `figma_get_nodes_with_unlinked_fills` e `figma_audit_and_link_unlinked_fills`, e usar `figma_execute` para aplicar bindings quando ainda houver hex no "Selection colors".
+
+## Escopo — como mapear do pedido para os parâmetros
+
+| Escopo no prompt | SCAN_BROKEN_BINDINGS / REPAIR_BROKEN_BINDINGS | REPAIR_AND_RELINK_BY_TOKEN_MAP |
+|------------------|------------------------------------------------|---------------------------------|
+| **Global (documento, todas as páginas)** | Não existe um único nodeId. Chamar para cada página (obter `figma.root.children` e usar `nodeId: page.id`) ou orientar uso de REPAIR_AND_RELINK com scope document. | `scope: { type: "document" }` |
+| **Página** | Omitir `nodeId` = página atual. Ou `nodeId: "<id da página>"`. | `scope: { type: "page" }` (atual) ou `scope: { type: "page", pageId: "<id>" }` |
+| **Componente / elemento / layer** | `nodeId: "<id do nó>"` (aplica no nó e em todos os filhos). | `scope: { type: "node", nodeId: "<id>" }` |
+
+## Fluxo obrigatório
+
+1. **Preferir** chamar **`run_recursive_token_fix`** com `nodeId` opcional (ou sem parâmetros para usar seleção atual). Corrige recursivamente no subtree sem precisar de mapa de tokens.
+2. Se precisar de fluxo fino: **SCAN_BROKEN_BINDINGS** com o escopo escolhido (`nodeId`); depois, se quiser **substituir por cor sólida** → **REPAIR_BROKEN_BINDINGS**; se quiser **revincular com mapa customizado** → **REPAIR_AND_RELINK_BY_TOKEN_MAP** com `semanticMap`, `primitiveMap` e `scope`.
+
+## Parâmetros dos comandos
+
+- **run_recursive_token_fix**: `{ "nodeId"?: string }` — omitir = usa seleção atual ou página atual. Recomendado para correção de tokens.
+- **SCAN_BROKEN_BINDINGS**: `{ "nodeId"?: string }` — omitir = página atual.
+- **REPAIR_BROKEN_BINDINGS**: `{ "nodeId"?: string, "fallbackHex"?: string }` — ex.: `"#6B7280"`.
+- **REPAIR_AND_RELINK_BY_TOKEN_MAP**: `{ "semanticMap": object, "primitiveMap": object, "scope": { "type": "document"|"page"|"node", "pageId"?: string, "nodeId"?: string } }`.
+
+Chamada via MCP/plugin. Comandos de escrita podem exigir aprovação no plugin.

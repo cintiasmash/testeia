@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 11px;
+      background: var(--figma-color-bg, #2c2c2c);
+      color: var(--figma-color-text, rgba(255, 255, 255, 0.9));
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 10px;
+      user-select: none;
+      gap: 10px;
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .section-title {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.6));
+    }
+
+    /* --- Connection --- */
+    .connection-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--figma-color-bg-secondary, #383838);
+      border: 1px solid var(--figma-color-border, #4a4a4a);
+      border-radius: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.loading {
+      background: #f5a623;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .status-dot.connected {
+      background: #18a957;
+      box-shadow: 0 0 6px rgba(24, 169, 87, 0.6);
+    }
+
+    .status-dot.error {
+      background: #f24822;
+    }
+
+    .status-dot.disconnected {
+      background: #888;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    .status-label {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .error-msg {
+      font-size: 10px;
+      color: #f24822;
+      margin-top: 2px;
+      word-break: break-word;
+    }
+
+    .btn {
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--figma-color-border, #4a4a4a);
+      background: var(--figma-color-bg-tertiary, #4a4a4a);
+      color: var(--figma-color-text, rgba(255, 255, 255, 0.9));
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #0d99ff;
+      border-color: #0d99ff;
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: #f24822;
+      border-color: #f24822;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--figma-color-bg-tertiary, #2c2c2c);
+      border-color: var(--figma-color-border, #4a4a4a);
+      color: var(--figma-color-text-secondary, rgba(255,255,255,0.7));
+    }
+
+    /* --- Approval --- */
+    .approval-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle {
+      width: 32px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--figma-color-bg-tertiary, #4a4a4a);
+      border: 1px solid var(--figma-color-border, #4a4a4a);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .toggle.on {
+      background: #18a957;
+      border-color: #18a957;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      top: 1px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .toggle.on::after {
+      transform: translateX(14px);
+    }
+
+    .pending-list {
+      max-height: 80px;
+      overflow-y: auto;
+      background: var(--figma-color-bg-secondary, #383838);
+      border: 1px solid var(--figma-color-border, #4a4a4a);
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    .pending-item {
+      font-size: 10px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      background: var(--figma-color-bg, #2c2c2c);
+    }
+
+    .pending-item:last-child { margin-bottom: 0; }
+
+    .approve-actions-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* --- History --- */
+    .history-list {
+      max-height: 220px;
+      overflow-y: auto;
+      background: var(--figma-color-bg-secondary, #383838);
+      border: 1px solid var(--figma-color-border, #4a4a4a);
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    .history-item-wrap {
+      margin-bottom: 6px;
+      border-radius: 4px;
+      background: var(--figma-color-bg, #2c2c2c);
+      border: 1px solid var(--figma-color-border, #3a3a3a);
+      overflow: hidden;
+    }
+
+    .history-item-wrap:last-child { margin-bottom: 0; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 10px;
+      padding: 6px 8px;
+      min-height: 28px;
+    }
+
+    .history-desc {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-time {
+      font-size: 9px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.5));
+      flex-shrink: 0;
+    }
+
+    .btn-undo {
+      font-size: 10px;
+      padding: 4px 10px;
+      flex-shrink: 0;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .history-toggle {
+      font-size: 9px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.7));
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 0;
+      margin-left: 4px;
+      text-decoration: underline;
+    }
+
+    .history-detail {
+      font-size: 9px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.85));
+      padding: 6px 8px 8px;
+      border-top: 1px solid var(--figma-color-border, #3a3a3a);
+      line-height: 1.35;
+    }
+
+    .history-detail strong { color: var(--figma-color-text, rgba(255, 255, 255, 0.9)); }
+
+    .history-detail-list {
+      margin: 2px 0 0 12px;
+      padding-left: 4px;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .history-detail-list li { margin-bottom: 1px; }
+
+    .history-preview-list {
+      max-height: 160px;
+      overflow-y: auto;
+      background: var(--figma-color-bg-secondary, #383838);
+      border: 1px solid var(--figma-color-border, #4a4a4a);
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    .empty-msg {
+      font-size: 10px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.5));
+      padding: 8px;
+      text-align: center;
+    }
+
+    /* Tabs (Comandos | Histórico) */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--figma-color-border, #4a4a4a);
+      margin: -8px -10px 0 -10px;
+      padding: 0 10px;
+    }
+    .tab {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.7));
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--figma-color-text, rgba(255, 255, 255, 0.9)); }
+    .tab.active {
+      color: var(--figma-color-text, rgba(255, 255, 255, 0.95));
+      border-bottom-color: #0d99ff;
+    }
+    .panel { display: none; flex: 1; flex-direction: column; gap: 10px; min-height: 0; }
+    .panel.active { display: flex; }
+
+    .help-text {
+      font-size: 10px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.6));
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+
+    .btn-apply {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .footer-note {
+      font-size: 10px;
+      color: var(--figma-color-text-secondary, rgba(255, 255, 255, 0.5));
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--figma-color-border, #4a4a4a);
+    }
+
+    @media (prefers-color-scheme: light) {
+      body { background: #f5f5f5; color: #333; }
+      .status-box { background: #fff; border-color: #e5e5e5; }
+      .section-title { color: #666; }
+      .btn { background: #e0e0e0; border-color: #ccc; color: #333; }
+      .btn-primary { background: #0d99ff; border-color: #0d99ff; color: #fff; }
+      .pending-list, .history-list, .history-preview-list { background: #fff; border-color: #e5e5e5; }
+      .pending-item { background: #f5f5f5; }
+      .history-item-wrap { background: #f9f9f9; border-color: #e5e5e5; }
+      .history-item { background: #fff; }
+      .history-detail { border-top-color: #e5e5e5; color: #444; }
+      .history-detail strong { color: #333; }
+      .history-toggle { color: #666; }
+      .toggle { background: #ccc; }
+      .toggle.on { background: #18a957; }
+      .error-msg { color: #c00; }
+      .tabs { border-color: #e5e5e5; }
+      .tab { color: #666; }
+      .tab.active { color: #111; }
+      .help-text, .footer-note { color: #666; }
+    }
+  </style>
+</head>
+<body>
+  <div class="tabs">
+    <div class="tab active" id="tab-comandos" data-tab="comandos">Comandos</div>
+    <div class="tab" id="tab-historico" data-tab="historico">Histórico</div>
+  </div>
+
+  <!-- Painel Comandos -->
+  <div class="panel active" id="panel-comandos">
+    <div class="section">
+      <div class="section-title">CURSOR (MCP) <span style="font-weight:normal; opacity:0.8; font-size:10px;">— Bridge local</span></div>
+      <div class="status-label" id="status-label">Desconectado</div>
+      <p class="help-text">Primeiro inicie o MCP (veja instruções abaixo), depois clique em Conectar. Use o plugin importado de <strong>figma-desktop-brigde</strong> (não o do npx).</p>
+      <div class="connection-row" style="margin-top: 6px;">
+        <div class="status-box">
+          <div class="status-dot disconnected" id="status-dot"></div>
+          <span id="status-text">Desconectado</span>
+        </div>
+        <button type="button" id="btn-connect" class="btn btn-primary">Conectar ao Cursor</button>
+        <button type="button" id="btn-check-file" class="btn btn-secondary" title="Ver se o plugin enxerga o arquivo (fileKey)">Verificar arquivo</button>
+      </div>
+      <div class="error-msg" id="connection-error" style="display: none;"></div>
+      <div class="help-text" id="file-check-result" style="margin-top: 6px; display: none;"></div>
+      <p class="help-text" style="margin-top: 8px;">A ponte usa WebSocket nas portas 9229, 9230, 9223–9232. No Figma Desktop, se o arquivo tem link (URL), já está salvo. Se não conectar mesmo com arquivo salvo: confira se o MCP está rodando no Cursor e se o plugin foi importado de <strong>figma-desktop-brigde</strong> (Plugins → Development → Import plugin from manifest).</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Aprovação</div>
+      <div class="approval-row toggle-wrap">
+        <span>Exigir aprovação antes de aplicar</span>
+        <div class="toggle" id="toggle-approval" title="Quando ativo, ações do MCP ficam na fila até você clicar em Aplicar (aprovar)"></div>
+      </div>
+      <div id="pending-section" class="pending-section">
+        <p class="help-text" id="pending-empty-msg">Com aprovação ligada, as ações do MCP aparecem aqui. Clique em &quot;Aplicar&quot; para executar.</p>
+        <div class="pending-list" id="pending-list"></div>
+        <button type="button" id="btn-approve-all" class="btn btn-primary btn-apply" style="margin-top: 8px;">Aplicar (aprovar)</button>
+      </div>
+    </div>
+
+    <div class="section" id="history-on-comandos-section">
+      <div class="section-title">Histórico (últimas ações)</div>
+      <p class="help-text">Detalhes das mudanças e botão <strong>Desfazer</strong> para reverter a ação. Clique em "Ver detalhes" para ver o que foi alterado em cada item.</p>
+      <div class="history-preview-list" id="history-preview-list"></div>
+      <button type="button" id="btn-ver-historico" class="btn" style="margin-top: 8px; width: 100%;">Ver todo o histórico</button>
+    </div>
+
+    <p class="footer-note">Use Cmd+Z no Figma para desfazer. O que foi alterado aparece em Histórico.</p>
+  </div>
+
+  <!-- Painel Histórico -->
+  <div class="panel" id="panel-historico">
+    <div class="section" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+      <div class="section-title">Ações realizadas</div>
+      <div class="history-list" id="history-list">
+        <div class="empty-msg" id="history-empty">Nenhuma ação ainda.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // GLOBAL STATE
+    // ============================================================================
+    window.__figmaVariablesData = null;
+    window.__figmaVariablesReady = false;
+    window.__figmaComponentData = null;
+    window.__figmaComponentRequests = new Map();
+    window.__figmaPendingRequests = new Map();
+
+    window.__approvalRequired = false;
+    window.__pendingActions = [];
+    window.__actionHistory = [];
+    window.__actionHistoryMax = 50;
+
+    let requestIdCounter = 0;
+
+    // Methods that require approval when approval mode is on (write operations)
+    var APPROVAL_METHODS = {
+      'EXECUTE_CODE': true, 'figma_execute': true,
+      'UPDATE_VARIABLE': true, 'CREATE_VARIABLE': true, 'CREATE_VARIABLE_COLLECTION': true,
+      'DELETE_VARIABLE': true, 'DELETE_VARIABLE_COLLECTION': true, 'RENAME_VARIABLE': true, 'SET_VARIABLE_DESCRIPTION': true,
+      'ADD_MODE': true, 'RENAME_MODE': true, 'INSTANTIATE_COMPONENT': true, 'SET_NODE_DESCRIPTION': true,
+      'ADD_COMPONENT_PROPERTY': true, 'EDIT_COMPONENT_PROPERTY': true, 'DELETE_COMPONENT_PROPERTY': true,
+      'RESIZE_NODE': true, 'MOVE_NODE': true, 'SET_NODE_FILLS': true, 'SET_NODE_FILL_STYLE': true,
+      'SET_NODE_FILL_VARIABLE': true, 'set_fill_variable': true, 'set_fill_color': true, 'set_fill_style': true,
+      'AUDIT_AND_LINK_UNLINKED_FILLS': true,
+      'SET_NODE_STROKES': true, 'SET_NODE_OPACITY': true, 'SET_NODE_CORNER_RADIUS': true,
+      'CLONE_NODE': true, 'DELETE_NODE': true, 'RENAME_NODE': true, 'rename_node': true, 'set_auto_layout': true, 'SET_TEXT_CONTENT': true,
+      'SET_ALL_TEXT_LAYERS': true, 'APPLY_HEADING_H2': true, 'CREATE_CHILD_NODE': true,
+      'SET_INSTANCE_PROPERTIES': true, 'RUN_TOKEN_AUDIT_PAGE': true, 'RUN_TOKEN_AUDIT_GLOBAL': true,
+      'SET_AUTO_LAYOUT': true, 'UPDATE_AUTO_LAYOUT': true, 'REMOVE_AUTO_LAYOUT': true, 'SET_LAYOUT_SIZING': true,
+      'SET_LAYOUT_ALIGN': true, 'SET_PADDING': true, 'SET_ITEM_SPACING': true, 'SET_WRAP': true, 'SET_CLIP_CONTENT': true,
+      'SET_SCROLL_BEHAVIOR': true, 'SET_COMPONENT_STATE': true, 'CREATE_INTERACTION': true, 'UPDATE_INTERACTION': true,
+      'DELETE_INTERACTION': true, 'LINK_VARIANTS_AS_INTERACTIVE': true, 'REPLACE_COLOR_TOKEN': true,
+      'REPLACE_TYPO_TOKEN': true, 'REPAIR_TOKENS_BY_MAP': true, 'APPLY_TEXT_STYLE': true,
+      'SCAN_BROKEN_BINDINGS': false, 'REPAIR_BROKEN_BINDINGS': true,
+      'REPAIR_AND_RELINK_BY_TOKEN_MAP': true,
+      'RUN_RECURSIVE_TOKEN_FIX': true
+    };
+
+    function getStatusDot() { return document.getElementById('status-dot'); }
+    function getStatusLabel() { return document.getElementById('status-label'); }
+    function getStatusText() { return document.getElementById('status-text'); }
+    function getConnectionError() { return document.getElementById('connection-error'); }
+
+    function setConnectionState(state, errorMessage) {
+      var dot = getStatusDot();
+      var label = getStatusLabel();
+      var textEl = getStatusText();
+      var errEl = getConnectionError();
+      var stateStr = state === 'connected' ? 'Conectado' : (state === 'loading' ? 'Conectando…' : (state === 'error' ? 'Erro' : 'Desconectado'));
+      if (dot) dot.className = 'status-dot ' + state;
+      if (label) label.textContent = (state === 'loading' && errorMessage) ? errorMessage : stateStr;
+      if (textEl) textEl.textContent = (state === 'loading' && errorMessage) ? errorMessage : stateStr;
+      if (errEl) {
+        if (errorMessage && state !== 'loading') { errEl.textContent = errorMessage; errEl.style.display = 'block'; }
+        else { errEl.textContent = ''; errEl.style.display = 'none'; }
+      }
+    }
+
+    // Descrição legível da ação para mostrar no Histórico
+    function actionDescription(method, params, result) {
+      var p = params || {};
+      var r = result || {};
+      if (method === 'RENAME_NODE' && r.oldName != null) {
+        return 'Renomeou "' + r.oldName + '" → "' + (p.newName || r.name || '') + '"';
+      }
+      if (method === 'RUN_TOKEN_AUDIT_PAGE' && r.result) {
+        var n = r.result.fixed != null ? r.result.fixed : 0;
+        return n > 0 ? 'Corrigir tokens: ' + n + ' corrigidos na página' : 'Corrigir tokens: nenhuma alteração';
+      }
+      if (method === 'AUDIT_AND_LINK_UNLINKED_FILLS') {
+        var linked = (r.linked || (r.result && r.result.linked) || []).length;
+        var noMatch = (r.noMatch || (r.result && r.result.noMatch) || []).length;
+        return linked > 0 ? 'Tokens: ' + linked + ' vinculados' + (noMatch > 0 ? ', ' + noMatch + ' sem variável correspondente' : '') : (noMatch > 0 ? 'Tokens: ' + noMatch + ' sem variável correspondente' : 'Tokens: nenhum fill sem vínculo');
+      }
+      if (method === 'SCAN_BROKEN_BINDINGS' && r.broken) {
+        var c = (r.broken || []).length;
+        return c > 0 ? 'Vínculos quebrados: ' + c + ' encontrados' : 'Vínculos quebrados: nenhum';
+      }
+      if (method === 'REPAIR_BROKEN_BINDINGS' && r.repaired) {
+        var c = (r.repaired || []).length;
+        return c > 0 ? 'Vínculos quebrados: ' + c + ' corrigidos' : 'Vínculos quebrados: nenhum corrigido';
+      }
+      if ((method === 'REPAIR_AND_RELINK_BY_TOKEN_MAP' || method === 'RUN_RECURSIVE_TOKEN_FIX') && r.linked) {
+        var linked = (r.linked || []).length;
+        var noMatch = (r.noMatch || []).length;
+        var label = method === 'RUN_RECURSIVE_TOKEN_FIX' ? 'Correção recursiva tokens' : 'Revincular tokens';
+        return linked > 0 ? label + ': ' + linked + ' revinculado(s)' + (noMatch > 0 ? ', ' + noMatch + ' sem match' : '') : (noMatch > 0 ? label + ': ' + noMatch + ' sem match' : label + ': nenhum quebrado');
+      }
+      if (method === 'CREATE_CHILD_NODE') {
+        var type = p.nodeType || (r.node && r.node.type) || 'nó';
+        return 'Criou ' + String(type).toLowerCase();
+      }
+      if (method === 'INSTANTIATE_COMPONENT') {
+        return 'Instanciou componente';
+      }
+      if (method === 'DELETE_NODE') return 'Removeu nó';
+      if (method === 'SET_TEXT_CONTENT') return 'Alterou texto';
+      if (method === 'SET_NODE_FILLS' || method === 'SET_NODE_FILL_VARIABLE' || method === 'set_fill_variable') return 'Alterou cor de preenchimento';
+      if (method === 'MOVE_NODE') return 'Moveu nó';
+      if (method === 'RESIZE_NODE') return 'Redimensionou nó';
+      if (method === 'EXECUTE_CODE' || method === 'figma_execute') return result ? 'Executou código' : 'Executar código';
+      if (method === 'UPDATE_VARIABLE') return 'Atualizou variável';
+      if (method === 'CREATE_VARIABLE') return 'Criou variável';
+      if (method === 'UNDO') return r.description || 'Desfez ação';
+      return (method || '').replace(/_/g, ' ');
+    }
+
+    // Detalhes das mudanças para expandir no Histórico
+    function actionDetail(method, params, result) {
+      var p = params || {};
+      var r = result || {};
+      var parts = [];
+      function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+      if (method === 'RENAME_NODE' && (r.oldName != null || r.node)) {
+        var nodeName = (r.node && r.node.name) ? r.node.name : (p.newName || '');
+        parts.push('<strong>Nó:</strong> ' + esc(r.node && r.node.id ? r.node.id : p.nodeId) + '<br><strong>Antes:</strong> ' + esc(r.oldName) + ' → <strong>Depois:</strong> ' + esc(nodeName));
+      }
+      if (method === 'AUDIT_AND_LINK_UNLINKED_FILLS') {
+        var linked = r.linked || (r.result && r.result.linked) || [];
+        var noMatch = r.noMatch || (r.result && r.result.noMatch) || [];
+        if (linked.length) {
+          parts.push('<strong>Vinculados (' + linked.length + '):</strong><ul class="history-detail-list">' + linked.slice(0, 20).map(function(x) { return '<li>' + esc(x.name) + (x.variableName ? ' → ' + esc(x.variableName) : '') + '</li>'; }).join('') + (linked.length > 20 ? '<li>… +' + (linked.length - 20) + ' mais</li>' : '') + '</ul>');
+        }
+        if (noMatch.length) {
+          parts.push('<strong>Sem variável correspondente (' + noMatch.length + '):</strong><ul class="history-detail-list">' + noMatch.slice(0, 15).map(function(x) { return '<li>' + esc(x.name) + (x.fillHex ? ' ' + esc(x.fillHex) : '') + '</li>'; }).join('') + (noMatch.length > 15 ? '<li>… +' + (noMatch.length - 15) + ' mais</li>' : '') + '</ul>');
+        }
+      }
+      if (method === 'REPAIR_BROKEN_BINDINGS' && (r.repaired || []).length) {
+        var repaired = r.repaired || [];
+        parts.push('<strong>Corrigidos (' + repaired.length + '):</strong><ul class="history-detail-list">' + repaired.slice(0, 20).map(function(x) { return '<li>' + esc(x.name) + ' (' + esc(x.property) + ')' + (x.fallbackHex ? ' → ' + esc(x.fallbackHex) : '') + '</li>'; }).join('') + (repaired.length > 20 ? '<li>… +' + (repaired.length - 20) + ' mais</li>' : '') + '</ul>');
+      }
+      if (method === 'REPAIR_AND_RELINK_BY_TOKEN_MAP') {
+        var relinked = r.linked || [];
+        var noMatch = r.noMatch || [];
+        if (relinked.length) {
+          parts.push('<strong>Revinculados (' + relinked.length + '):</strong><ul class="history-detail-list">' + relinked.slice(0, 20).map(function(x) { return '<li>' + esc(x.name) + ' (' + esc(x.property) + ') → ' + esc(x.variableName || x.tokenPath || '') + '</li>'; }).join('') + (relinked.length > 20 ? '<li>… +' + (relinked.length - 20) + ' mais</li>' : '') + '</ul>');
+        }
+        if (noMatch.length) {
+          parts.push('<strong>Sem match (' + noMatch.length + '):</strong><ul class="history-detail-list">' + noMatch.slice(0, 15).map(function(x) { return '<li>' + esc(x.name) + (x.reason ? ': ' + esc(x.reason) : '') + '</li>'; }).join('') + (noMatch.length > 15 ? '<li>… +' + (noMatch.length - 15) + ' mais</li>' : '') + '</ul>');
+        }
+      }
+      if ((method === 'CREATE_CHILD_NODE' || method === 'INSTANTIATE_COMPONENT') && (r.node || r.instance)) {
+        var n = r.node || r.instance;
+        parts.push('<strong>Nó criado:</strong> ' + esc(n.name) + ' (id: ' + esc(n.id) + ')');
+      }
+      if (method === 'DELETE_NODE' && (r.id || r.nodeId)) {
+        parts.push('<strong>Removido:</strong> id ' + esc(r.id || r.nodeId) + (r.name ? ' — ' + esc(r.name) : ''));
+      }
+      if (method === 'SCAN_BROKEN_BINDINGS' && (r.broken || []).length) {
+        var broken = r.broken || [];
+        parts.push('<strong>Encontrados (' + broken.length + '):</strong><ul class="history-detail-list">' + broken.slice(0, 15).map(function(x) { return '<li>' + esc(x.name) + (x.nodeId ? ' ' + esc(x.nodeId) : '') + '</li>'; }).join('') + (broken.length > 15 ? '<li>… +' + (broken.length - 15) + ' mais</li>' : '') + '</ul>');
+      }
+      if (!parts.length) return '';
+      return parts.join('<br>');
+    }
+
+    // Tabs: Comandos | Histórico
+    function showPanel(name) {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-tab') === name); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.toggle('active', p.id === 'panel-' + name); });
+    }
+    function initTabs() {
+      document.getElementById('tab-comandos').addEventListener('click', function() { showPanel('comandos'); renderHistoryPreview(); });
+      document.getElementById('tab-historico').addEventListener('click', function() { showPanel('historico'); renderHistory(); });
+      var btnVer = document.getElementById('btn-ver-historico');
+      if (btnVer) btnVer.addEventListener('click', function() { showPanel('historico'); renderHistory(); });
+    }
+
+    function renderPendingActions() {
+      var list = document.getElementById('pending-list');
+      var section = document.getElementById('pending-section');
+      var btn = document.getElementById('btn-approve-all');
+      var emptyMsg = document.getElementById('pending-empty-msg');
+      if (!list || !section) return;
+      if (window.__approvalRequired) {
+        section.style.display = 'block';
+        if (window.__pendingActions.length === 0) {
+          if (emptyMsg) emptyMsg.style.display = 'block';
+          list.style.display = 'none';
+          if (btn) btn.style.display = 'none';
+        } else {
+          if (emptyMsg) emptyMsg.style.display = 'none';
+          list.style.display = 'block';
+          if (btn) { btn.style.display = 'block'; btn.textContent = window.__pendingActions.length === 1 ? 'Aplicar (aprovar)' : 'Aplicar (aprovar ' + window.__pendingActions.length + ' ações)'; }
+          list.innerHTML = window.__pendingActions.map(function(a, i) {
+            var desc = actionDescription(a.method, a.params, null);
+            if (a.params && a.params.nodeId) desc += ' • ' + (a.params.nodeId || '').slice(0, 12);
+            return '<div class="pending-item" data-index="' + i + '">' + desc + '</div>';
+          }).join('');
+        }
+      } else {
+        section.style.display = window.__pendingActions.length > 0 ? 'block' : 'none';
+        if (window.__pendingActions.length > 0) {
+          if (emptyMsg) emptyMsg.style.display = 'none';
+          list.style.display = 'block';
+          if (btn) { btn.style.display = 'block'; btn.textContent = window.__pendingActions.length === 1 ? 'Aplicar (aprovar)' : 'Aplicar (aprovar ' + window.__pendingActions.length + ' ações)'; }
+          list.innerHTML = window.__pendingActions.map(function(a, i) {
+            var desc = actionDescription(a.method, a.params, null);
+            if (a.params && a.params.nodeId) desc += ' • ' + (a.params.nodeId || '').slice(0, 12);
+            return '<div class="pending-item" data-index="' + i + '">' + desc + '</div>';
+          }).join('');
+        }
+      }
+    }
+
+    function pushHistory(entry) {
+      window.__actionHistory.unshift(entry);
+      if (window.__actionHistory.length > window.__actionHistoryMax) {
+        window.__actionHistory.pop();
+      }
+      renderHistory();
+      renderHistoryPreview();
+    }
+
+    function buildHistoryEntry(a, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'history-item-wrap';
+      var desc = a.description || (a.method || '').replace(/_/g, ' ');
+      var time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : '';
+      var canUndo = a.canUndo !== false && a.undoPayload != null;
+      var detailHtml = actionDetail(a.method, a.params || {}, a.result || {});
+      var hasDetail = detailHtml && detailHtml.length > 0;
+      var row = document.createElement('div');
+      row.className = 'history-item';
+      row.innerHTML = '<span class="history-desc" title="' + (desc.replace(/"/g, '&quot;')) + '">' + (desc.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</span>' +
+        '<span class="history-time">' + time + '</span>';
+      if (hasDetail) {
+        var toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'history-toggle';
+        toggle.textContent = 'Ver detalhes';
+        row.appendChild(toggle);
+        var detailEl = document.createElement('div');
+        detailEl.className = 'history-detail';
+        detailEl.style.display = 'none';
+        detailEl.innerHTML = detailHtml;
+        wrap.appendChild(row);
+        wrap.appendChild(detailEl);
+        toggle.addEventListener('click', function() {
+          var open = detailEl.style.display !== 'none';
+          detailEl.style.display = open ? 'none' : 'block';
+          toggle.textContent = open ? 'Ver detalhes' : 'Ocultar';
+        });
+      } else {
+        wrap.appendChild(row);
+      }
+      if (canUndo) {
+        var undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.className = 'btn btn-undo';
+        undoBtn.setAttribute('data-index', String(i));
+        undoBtn.title = 'Reverter esta ação';
+        undoBtn.textContent = 'Desfazer';
+        row.appendChild(undoBtn);
+        undoBtn.addEventListener('click', function() {
+          var idx = parseInt(this.getAttribute('data-index'), 10);
+          var item = window.__actionHistory[idx];
+          if (item && item.undoPayload) window.triggerUndo(item.undoPayload);
+        });
+      }
+      return wrap;
+    }
+
+    function renderHistory() {
+      var list = document.getElementById('history-list');
+      var empty = document.getElementById('history-empty');
+      if (!list) return;
+      if (window.__actionHistory.length === 0) {
+        if (empty) empty.style.display = 'block';
+        list.querySelectorAll('.history-item-wrap').forEach(function(el) { el.remove(); });
+        return;
+      }
+      if (empty) empty.style.display = 'none';
+      list.querySelectorAll('.history-item-wrap').forEach(function(el) { el.remove(); });
+      window.__actionHistory.forEach(function(a, i) {
+        list.appendChild(buildHistoryEntry(a, i));
+      });
+    }
+
+    function renderHistoryPreview() {
+      var list = document.getElementById('history-preview-list');
+      var section = document.getElementById('history-on-comandos-section');
+      var btnVer = document.getElementById('btn-ver-historico');
+      if (!list || !section) return;
+      list.innerHTML = '';
+      var entries = window.__actionHistory.slice(0, 5);
+      if (entries.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'empty-msg';
+        empty.textContent = 'Nenhuma ação ainda.';
+        list.appendChild(empty);
+      } else {
+        entries.forEach(function(a, i) {
+          list.appendChild(buildHistoryEntry(a, i));
+        });
+      }
+      if (btnVer) btnVer.style.display = window.__actionHistory.length > 5 ? 'block' : (entries.length ? 'block' : 'none');
+    }
+
+    window.triggerUndo = function(payload) {
+      window.sendPluginCommand('UNDO_ACTION', payload, 10000)
+        .then(function(r) {
+          if (r && r.success) {
+            pushHistory({ method: 'UNDO', description: actionDescription('UNDO', null, { description: payload.description || payload.actionType }), timestamp: Date.now(), canUndo: false });
+          }
+        })
+        .catch(function() {});
+    };
+
+    // ============================================================================
+    // COMMAND INFRASTRUCTURE
+    // ============================================================================
+    window.sendPluginCommand = (type, params, timeoutMs) => {
+      timeoutMs = timeoutMs || 15000;
+      return new Promise((resolve, reject) => {
+        const requestId = type.toLowerCase() + '_' + (++requestIdCounter) + '_' + Date.now();
+        const timeoutId = setTimeout(() => {
+          if (window.__figmaPendingRequests.has(requestId)) {
+            window.__figmaPendingRequests.delete(requestId);
+            reject(new Error(type + ' request timed out'));
+          }
+        }, timeoutMs);
+        window.__figmaPendingRequests.set(requestId, { resolve: resolve, reject: reject, type: type, timeoutId: timeoutId });
+        var message = { type: type, requestId: requestId };
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) message[key] = params[key];
+        }
+        parent.postMessage({ pluginMessage: message }, '*');
+      });
+    };
+
+    // ============================================================================
+    // CONNECT BUTTON & WEBSOCKET (no auto-connect; user clicks Conectar)
+    // Pré-checa fileKey antes de abrir WebSocket: arquivo não salvo = sem fileKey.
+    // ============================================================================
+    (function() {
+      var btn = document.getElementById('btn-connect');
+      if (btn) {
+        btn.addEventListener('click', function() {
+          if (!window.__wsConnect) return;
+          setConnectionState('loading', 'Verificando arquivo…');
+          window.sendPluginCommand('GET_FILE_INFO', {}, 5000).then(function(info) {
+            if (!info || info.success === false) {
+              setConnectionState('error', 'Não foi possível obter dados do arquivo. Tente fechar e abrir o plugin de novo.');
+              return;
+            }
+            if (!info.fileInfo || typeof info.fileInfo !== 'object') {
+              setConnectionState('error', 'Resposta do plugin sem fileInfo. Recarregue o plugin (Plugins → Development → Figma Desktop Bridge).');
+              return;
+            }
+            if (!info.fileInfo.fileKey) {
+              setConnectionState('error', 'Arquivo sem fileKey. Salve o arquivo no Figma (File → Save ou Cmd+S) e clique em Conectar de novo.');
+              return;
+            }
+            setConnectionState('loading', null);
+            window.__wsConnect();
+          }).catch(function(err) {
+            var msg = err && err.message ? err.message : String(err);
+            if (msg.indexOf('timed out') !== -1) {
+              setConnectionState('error', 'Plugin não respondeu a tempo. Recarregue o plugin (Plugins → Development → Figma Desktop Bridge) e tente de novo.');
+            } else {
+              setConnectionState('error', 'Falha ao verificar arquivo: ' + msg);
+            }
+          });
+        });
+      }
+
+      var btnCheckFile = document.getElementById('btn-check-file');
+      if (btnCheckFile) {
+        btnCheckFile.addEventListener('click', function() {
+          var resultEl = document.getElementById('file-check-result');
+          if (!resultEl) return;
+          resultEl.style.display = 'block';
+          resultEl.textContent = 'Verificando…';
+          resultEl.style.color = '';
+          window.sendPluginCommand('GET_FILE_INFO', {}, 5000).then(function(info) {
+            if (!info || !info.fileInfo) {
+              resultEl.textContent = 'Resposta sem fileInfo. Recarregue o plugin.';
+              resultEl.style.color = '#c00';
+              return;
+            }
+            var name = info.fileInfo.fileName || '(sem nome)';
+            var key = info.fileInfo.fileKey;
+            if (key) {
+              resultEl.textContent = 'Arquivo: ' + name + ' | fileKey: ' + key.substring(0, 8) + '… (OK — pode conectar)';
+              resultEl.style.color = '#0a0';
+            } else {
+              resultEl.textContent = 'Arquivo: ' + name + ' | fileKey: (nenhum). Salve o arquivo (File → Save) para conectar.';
+              resultEl.style.color = '#c00';
+            }
+          }).catch(function(err) {
+            resultEl.textContent = 'Erro: ' + (err && err.message ? err.message : String(err));
+            resultEl.style.color = '#c00';
+          });
+        });
+      }
+
+      var toggle = document.getElementById('toggle-approval');
+      if (toggle) {
+        toggle.addEventListener('click', function() {
+          window.__approvalRequired = !window.__approvalRequired;
+          toggle.classList.toggle('on', window.__approvalRequired);
+          try { localStorage.setItem('figma-bridge-approval', window.__approvalRequired ? '1' : '0'); } catch (e) {}
+          renderPendingActions();
+        });
+      }
+
+      document.getElementById('btn-approve-all').addEventListener('click', function() {
+        while (window.__pendingActions.length > 0) window.__processNextPending();
+      });
+      initTabs();
+      renderHistoryPreview();
+    })();
+
+    // ============================================================================
+    // VARIABLE / NODE HELPERS (unchanged from original)
+    // ============================================================================
+    window.executeCode = (code, timeout) => {
+      return window.sendPluginCommand('EXECUTE_CODE', { code: code, timeout: timeout || 5000 }, (timeout || 5000) + 2000)
+        .catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    };
+    window.updateVariable = (variableId, modeId, value) => {
+      return window.sendPluginCommand('UPDATE_VARIABLE', { variableId: variableId, modeId: modeId, value: value })
+        .catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    };
+    window.createVariable = (name, collectionId, resolvedType, options) => {
+      var params = { name: name, collectionId: collectionId, resolvedType: resolvedType };
+      if (options) { if (options.valuesByMode) params.valuesByMode = options.valuesByMode; if (options.description) params.description = options.description; if (options.scopes) params.scopes = options.scopes; }
+      return window.sendPluginCommand('CREATE_VARIABLE', params).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    };
+    window.createVariableCollection = (name, options) => {
+      var params = { name: name }; if (options) { if (options.initialModeName) params.initialModeName = options.initialModeName; if (options.additionalModes) params.additionalModes = options.additionalModes; }
+      return window.sendPluginCommand('CREATE_VARIABLE_COLLECTION', params).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    };
+    window.deleteVariable = (variableId) => window.sendPluginCommand('DELETE_VARIABLE', { variableId: variableId }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.deleteVariableCollection = (collectionId) => window.sendPluginCommand('DELETE_VARIABLE_COLLECTION', { collectionId: collectionId }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.renameVariable = (variableId, newName) => window.sendPluginCommand('RENAME_VARIABLE', { variableId: variableId, newName: newName }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.setVariableDescription = (variableId, description) => window.sendPluginCommand('SET_VARIABLE_DESCRIPTION', { variableId: variableId, description: description }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.addMode = (collectionId, modeName) => window.sendPluginCommand('ADD_MODE', { collectionId: collectionId, modeName: modeName }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.renameMode = (collectionId, modeId, newName) => window.sendPluginCommand('RENAME_MODE', { collectionId: collectionId, modeId: modeId, newName: newName }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.refreshVariables = () => window.sendPluginCommand('REFRESH_VARIABLES', {}, 300000).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.getLocalComponents = () => window.sendPluginCommand('GET_LOCAL_COMPONENTS', {}, 300000).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.instantiateComponent = (componentKey, options) => {
+      var params = { componentKey: componentKey }; if (options) { if (options.nodeId) params.nodeId = options.nodeId; if (options.position) params.position = options.position; if (options.size) params.size = options.size; if (options.overrides) params.overrides = options.overrides; if (options.variant) params.variant = options.variant; if (options.parentId) params.parentId = options.parentId; }
+      return window.sendPluginCommand('INSTANTIATE_COMPONENT', params).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    };
+    window.requestComponentData = (nodeId) => {
+      return new Promise((resolve, reject) => {
+        var requestId = 'component_' + (++requestIdCounter) + '_' + Date.now();
+        window.__figmaComponentRequests.set(requestId, { resolve: resolve, reject: reject });
+        parent.postMessage({ pluginMessage: { type: 'GET_COMPONENT', requestId: requestId, nodeId: nodeId } }, '*');
+        setTimeout(function() {
+          if (window.__figmaComponentRequests.has(requestId)) { window.__figmaComponentRequests.delete(requestId); reject(new Error('Component request timed out')); }
+        }, 10000);
+      });
+    };
+    window.setNodeDescription = (nodeId, description, descriptionMarkdown) => window.sendPluginCommand('SET_NODE_DESCRIPTION', { nodeId: nodeId, description: description, descriptionMarkdown: descriptionMarkdown }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.addComponentProperty = (nodeId, propertyName, type, defaultValue, options) => {
+      var params = { nodeId: nodeId, propertyName: propertyName, propertyType: type, defaultValue: defaultValue }; if (options && options.preferredValues) params.preferredValues = options.preferredValues;
+      return window.sendPluginCommand('ADD_COMPONENT_PROPERTY', params).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    };
+    window.editComponentProperty = (nodeId, propertyName, newValue) => window.sendPluginCommand('EDIT_COMPONENT_PROPERTY', { nodeId: nodeId, propertyName: propertyName, newValue: newValue }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.deleteComponentProperty = (nodeId, propertyName) => window.sendPluginCommand('DELETE_COMPONENT_PROPERTY', { nodeId: nodeId, propertyName: propertyName }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.resizeNode = (nodeId, width, height, withConstraints) => window.sendPluginCommand('RESIZE_NODE', { nodeId: nodeId, width: width, height: height, withConstraints: withConstraints !== false }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.moveNode = (nodeId, x, y) => window.sendPluginCommand('MOVE_NODE', { nodeId: nodeId, x: x, y: y }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.setNodeFills = (nodeId, fills) => window.sendPluginCommand('SET_NODE_FILLS', { nodeId: nodeId, fills: fills }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.setNodeFillStyle = (nodeId, styleId) => window.sendPluginCommand('SET_NODE_FILL_STYLE', { nodeId: nodeId, styleId: styleId }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.getNodesWithUnlinkedFills = (nodeId) => window.sendPluginCommand('GET_NODES_WITH_UNLINKED_FILLS', { nodeId: nodeId || null }).catch(function(err) { return { success: false, error: err.message || String(err), nodes: [] }; });
+    window.auditAndLinkUnlinkedFills = (nodeId) => window.sendPluginCommand('AUDIT_AND_LINK_UNLINKED_FILLS', { nodeId: nodeId || null }).catch(function(err) { return { success: false, error: err.message || String(err), linked: [], noMatch: [] }; });
+    window.setNodeFillVariable = (nodeId, variableId) => window.sendPluginCommand('SET_NODE_FILL_VARIABLE', { nodeId: nodeId, variableId: variableId }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.setNodeStrokes = (nodeId, strokes, strokeWeight) => { var p = { nodeId: nodeId, strokes: strokes }; if (strokeWeight !== undefined) p.strokeWeight = strokeWeight; return window.sendPluginCommand('SET_NODE_STROKES', p).catch(function(err) { return { success: false, error: err.message || String(err) }; }); };
+    window.setNodeOpacity = (nodeId, opacity) => window.sendPluginCommand('SET_NODE_OPACITY', { nodeId: nodeId, opacity: opacity }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.setNodeCornerRadius = (nodeId, radius) => window.sendPluginCommand('SET_NODE_CORNER_RADIUS', { nodeId: nodeId, radius: radius }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.cloneNode = (nodeId) => window.sendPluginCommand('CLONE_NODE', { nodeId: nodeId }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.deleteNode = (nodeId) => window.sendPluginCommand('DELETE_NODE', { nodeId: nodeId }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.renameNode = (nodeId, newName) => window.sendPluginCommand('RENAME_NODE', { nodeId: nodeId, newName: newName }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.setTextContent = (nodeId, text, options) => { var p = { nodeId: nodeId, text: text }; if (options) { if (options.fontSize) p.fontSize = options.fontSize; if (options.fontWeight) p.fontWeight = options.fontWeight; if (options.fontFamily) p.fontFamily = options.fontFamily; } return window.sendPluginCommand('SET_TEXT_CONTENT', p).catch(function(err) { return { success: false, error: err.message || String(err) }; }); };
+    window.setAllTextLayers = (text) => window.sendPluginCommand('SET_ALL_TEXT_LAYERS', { text: text != null ? text : '{Text}' }, 120000).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.applyHeadingH2 = (nodeId) => window.sendPluginCommand('APPLY_HEADING_H2', { nodeId: nodeId || '4952:7160' }, 60000).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.createChildNode = (parentId, nodeType, properties) => window.sendPluginCommand('CREATE_CHILD_NODE', { parentId: parentId, nodeType: nodeType, properties: properties || {} }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+    window.captureScreenshot = (nodeId, options) => { var p = { nodeId: nodeId }; if (options) { if (options.format) p.format = options.format; if (options.scale) p.scale = options.scale; } return window.sendPluginCommand('CAPTURE_SCREENSHOT', p, 30000).catch(function(err) { return { success: false, error: err.message || String(err) }; }); };
+    window.setInstanceProperties = (nodeId, properties) => window.sendPluginCommand('SET_INSTANCE_PROPERTIES', { nodeId: nodeId, properties: properties }).catch(function(err) { return { success: false, error: err.message || String(err) }; });
+
+    // ============================================================================
+    // WEBSOCKET BRIDGE — connect on button click; show errors
+    // ============================================================================
+    (function() {
+      // Cursor MCP often uses fallback port 9229 — try it first for reliable connection
+      var wsPorts = [9229, 9230, 9223, 9224, 9225, 9226, 9227, 9228, 9231, 9232];
+      var wsPort = wsPorts[0];
+      var ws = null;
+      var wsReconnectDelay = 500;
+      var wsMaxReconnectDelay = 5000;
+      var wsReconnectAttempts = 0;
+      var wsMaxReconnectAttempts = 50;
+      var wsConnected = false;
+      var wsPortScanIndex = 0;
+      var lastConnectionError = null;
+
+      var methodMap = {
+        'EXECUTE_CODE': function(params) { return window.executeCode(params.code, params.timeout); },
+        'figma_execute': function(params) { return window.executeCode(params.code, params.timeout); },
+        'UPDATE_VARIABLE': function(params) { return window.updateVariable(params.variableId, params.modeId, params.value); },
+        'CREATE_VARIABLE': function(params) { return window.createVariable(params.name, params.collectionId, params.resolvedType, params); },
+        'DELETE_VARIABLE': function(params) { return window.deleteVariable(params.variableId); },
+        'DELETE_VARIABLE_COLLECTION': function(params) { return window.deleteVariableCollection(params.collectionId); },
+        'RENAME_VARIABLE': function(params) { return window.renameVariable(params.variableId, params.newName); },
+        'SET_VARIABLE_DESCRIPTION': function(params) { return window.setVariableDescription(params.variableId, params.description); },
+        'ADD_MODE': function(params) { return window.addMode(params.collectionId, params.modeName); },
+        'RENAME_MODE': function(params) { return window.renameMode(params.collectionId, params.modeId, params.newName); },
+        'REFRESH_VARIABLES': function() { return window.refreshVariables(); },
+        'CREATE_VARIABLE_COLLECTION': function(params) { return window.createVariableCollection(params.name, params); },
+        'GET_LOCAL_COMPONENTS': function() { return window.getLocalComponents(); },
+        'INSTANTIATE_COMPONENT': function(params) { return window.instantiateComponent(params.componentKey, params); },
+        'GET_COMPONENT': function(params) { return window.requestComponentData(params.nodeId); },
+        'SET_NODE_DESCRIPTION': function(params) { return window.setNodeDescription(params.nodeId, params.description, params.descriptionMarkdown); },
+        'ADD_COMPONENT_PROPERTY': function(params) { return window.addComponentProperty(params.nodeId, params.propertyName, params.propertyType, params.defaultValue, params); },
+        'EDIT_COMPONENT_PROPERTY': function(params) { return window.editComponentProperty(params.nodeId, params.propertyName, params.newValue); },
+        'DELETE_COMPONENT_PROPERTY': function(params) { return window.deleteComponentProperty(params.nodeId, params.propertyName); },
+        'RESIZE_NODE': function(params) { return window.resizeNode(params.nodeId, params.width, params.height, params.withConstraints); },
+        'MOVE_NODE': function(params) { return window.moveNode(params.nodeId, params.x, params.y); },
+        'SET_NODE_FILLS': function(params) { return window.setNodeFills(params.nodeId, params.fills); },
+        'SET_NODE_FILL_STYLE': function(params) { return window.setNodeFillStyle(params.nodeId, params.styleId); },
+        'GET_NODES_WITH_UNLINKED_FILLS': function(params) { return window.getNodesWithUnlinkedFills(params.nodeId); },
+        'AUDIT_AND_LINK_UNLINKED_FILLS': function(params) { return window.auditAndLinkUnlinkedFills(params.nodeId); },
+        'get_nodes_with_unlinked_fills': function(params) { return window.getNodesWithUnlinkedFills(params.nodeId); },
+        'SET_NODE_FILL_VARIABLE': function(params) { return window.setNodeFillVariable(params.nodeId, params.variableId); },
+        'set_fill_variable': function(params) { return window.setNodeFillVariable(params.nodeId, params.variableId); },
+        'set_fill_color': function(params) { var c = params.color || {}; var fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a != null ? c.a : 1 }]; return window.setNodeFills(params.nodeId, fills); },
+        'set_fill_style': function(params) { return window.setNodeFillStyle(params.nodeId, params.styleId); },
+        'SET_NODE_STROKES': function(params) { return window.setNodeStrokes(params.nodeId, params.strokes, params.strokeWeight); },
+        'SET_NODE_OPACITY': function(params) { return window.setNodeOpacity(params.nodeId, params.opacity); },
+        'SET_NODE_CORNER_RADIUS': function(params) { return window.setNodeCornerRadius(params.nodeId, params.radius); },
+        'CLONE_NODE': function(params) { return window.cloneNode(params.nodeId); },
+        'DELETE_NODE': function(params) { return window.deleteNode(params.nodeId); },
+        'RENAME_NODE': function(params) { return window.renameNode(params.nodeId, params.newName); },
+        'rename_node': function(params) { return window.renameNode(params.nodeId, params.newName); },
+        'set_auto_layout': function(params) { return window.sendPluginCommand('SET_AUTO_LAYOUT', { nodeId: params.nodeId, direction: params.direction, padding: params.padding, itemSpacing: params.itemSpacing, alignment: params.alignment, wrap: params.wrap, clipContent: params.clipContent }); },
+        'SET_TEXT_CONTENT': function(params) { return window.setTextContent(params.nodeId, params.text, params); },
+        'SET_ALL_TEXT_LAYERS': function(params) { return window.setAllTextLayers(params.text); },
+        'APPLY_HEADING_H2': function(params) { return window.applyHeadingH2(params.nodeId); },
+        'CREATE_CHILD_NODE': function(params) { return window.createChildNode(params.parentId, params.nodeType, params.properties); },
+        'CAPTURE_SCREENSHOT': function(params) { return window.captureScreenshot(params.nodeId, params); },
+        'SET_INSTANCE_PROPERTIES': function(params) { return window.setInstanceProperties(params.nodeId, params.properties); },
+        'GET_VARIABLES_DATA': function() {
+          if (window.__figmaVariablesReady && window.__figmaVariablesData) return Promise.resolve(window.__figmaVariablesData);
+          return Promise.reject(new Error('Variables data not ready.'));
+        },
+        'GET_FILE_INFO': function() { return window.sendPluginCommand('GET_FILE_INFO', {}); },
+        'CLEAR_CONSOLE': function() { return Promise.resolve({ cleared: true }); },
+        'RELOAD_UI': function() { return window.sendPluginCommand('RELOAD_UI', {}); },
+        'SET_AUTO_LAYOUT': function(params) { return window.sendPluginCommand('SET_AUTO_LAYOUT', params); },
+        'UPDATE_AUTO_LAYOUT': function(params) { return window.sendPluginCommand('UPDATE_AUTO_LAYOUT', params); },
+        'REMOVE_AUTO_LAYOUT': function(params) { return window.sendPluginCommand('REMOVE_AUTO_LAYOUT', params); },
+        'SET_LAYOUT_SIZING': function(params) { return window.sendPluginCommand('SET_LAYOUT_SIZING', params); },
+        'SET_LAYOUT_ALIGN': function(params) { return window.sendPluginCommand('SET_LAYOUT_ALIGN', params); },
+        'SET_PADDING': function(params) { return window.sendPluginCommand('SET_PADDING', params); },
+        'SET_ITEM_SPACING': function(params) { return window.sendPluginCommand('SET_ITEM_SPACING', params); },
+        'SET_WRAP': function(params) { return window.sendPluginCommand('SET_WRAP', params); },
+        'SET_CLIP_CONTENT': function(params) { return window.sendPluginCommand('SET_CLIP_CONTENT', params); },
+        'SET_SCROLL_BEHAVIOR': function(params) { return window.sendPluginCommand('SET_SCROLL_BEHAVIOR', params); },
+        'SET_COMPONENT_STATE': function(params) { return window.sendPluginCommand('SET_COMPONENT_STATE', params); },
+        'CREATE_INTERACTION': function(params) { return window.sendPluginCommand('CREATE_INTERACTION', params); },
+        'UPDATE_INTERACTION': function(params) { return window.sendPluginCommand('UPDATE_INTERACTION', params); },
+        'DELETE_INTERACTION': function(params) { return window.sendPluginCommand('DELETE_INTERACTION', params); },
+        'LINK_VARIANTS_AS_INTERACTIVE': function(params) { return window.sendPluginCommand('LINK_VARIANTS_AS_INTERACTIVE', params); },
+        'GET_VARIABLES': function(params) { return window.sendPluginCommand('GET_VARIABLES', params || {}); },
+        'GET_COLLECTIONS': function(params) { return window.sendPluginCommand('GET_COLLECTIONS', params || {}); },
+        'FIND_VARIABLE': function(params) { return window.sendPluginCommand('FIND_VARIABLE', params || {}); },
+        'GET_VARIABLE_BY_NAME': function(params) { return window.sendPluginCommand('GET_VARIABLE_BY_NAME', params || {}); },
+        'GET_VARIABLE_BY_ID': function(params) { return window.sendPluginCommand('GET_VARIABLE_BY_ID', params || {}); },
+        'SCAN_UNLINKED_TOKENS': function(params) { return window.sendPluginCommand('SCAN_UNLINKED_TOKENS', params || {}); },
+        'SCAN_BROKEN_BINDINGS': function(params) { return window.sendPluginCommand('SCAN_BROKEN_BINDINGS', params || {}); },
+        'REPAIR_BROKEN_BINDINGS': function(params) { return window.sendPluginCommand('REPAIR_BROKEN_BINDINGS', params || {}); },
+        'REPAIR_AND_RELINK_BY_TOKEN_MAP': function(params) { return window.sendPluginCommand('REPAIR_AND_RELINK_BY_TOKEN_MAP', { semanticMap: params.semanticMap || {}, primitiveMap: params.primitiveMap || {}, scope: params.scope || { type: 'document' } }, 60000); },
+        'RUN_RECURSIVE_TOKEN_FIX': function(params) { return window.sendPluginCommand('RUN_RECURSIVE_TOKEN_FIX', { nodeId: params && params.nodeId }, 60000); },
+        'REPLACE_COLOR_TOKEN': function(params) { return window.sendPluginCommand('REPLACE_COLOR_TOKEN', params || {}); },
+        'REPLACE_TYPO_TOKEN': function(params) { return window.sendPluginCommand('REPLACE_TYPO_TOKEN', params || {}); },
+        'REPAIR_TOKENS_BY_MAP': function(params) { return window.sendPluginCommand('REPAIR_TOKENS_BY_MAP', params || {}); },
+        'APPLY_TEXT_STYLE': function(params) { return window.sendPluginCommand('APPLY_TEXT_STYLE', params || {}); },
+        'LOAD_FONTS': function(params) { return window.sendPluginCommand('LOAD_FONTS', params || {}); }
+      };
+
+      function tryNextPort() {
+        wsPortScanIndex++;
+        if (wsPortScanIndex < wsPorts.length) {
+          wsPort = wsPorts[wsPortScanIndex];
+          setTimeout(wsConnect, 0);
+        } else {
+          wsPortScanIndex = 0;
+          wsPort = wsPorts[0];
+          wsReconnectAttempts++;
+          if (wsReconnectAttempts <= wsMaxReconnectAttempts) {
+            setTimeout(wsConnect, wsReconnectDelay);
+            wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, wsMaxReconnectDelay);
+          } else {
+            lastConnectionError = 'Nenhum servidor MCP encontrado nas portas ' + wsPorts.slice(0, 4).join(', ') + '…';
+            setConnectionState('error', lastConnectionError);
+          }
+        }
+      }
+
+      function wsConnect() {
+        wsPort = wsPorts[wsPortScanIndex];
+        setConnectionState('loading', 'Tentando porta ' + wsPort + '…');
+        try {
+          ws = new WebSocket('ws://localhost:' + wsPort);
+        } catch (e) {
+          lastConnectionError = e.message || 'WebSocket não disponível';
+          setConnectionState('error', lastConnectionError);
+          tryNextPort();
+          return;
+        }
+
+        ws.onopen = function() {
+          wsConnected = true;
+          wsReconnectDelay = 500;
+          wsReconnectAttempts = 0;
+          wsPortScanIndex = 0;
+          lastConnectionError = null;
+          setConnectionState('loading', 'Enviando fileKey…');
+
+          if (window.__figmaVariablesReady && window.__figmaVariablesData) {
+            ws.send(JSON.stringify({ type: 'VARIABLES_DATA', data: window.__figmaVariablesData }));
+          }
+          window.sendPluginCommand('GET_FILE_INFO', {}, 10000).then(function(info) {
+            if (!ws || ws.readyState !== 1) return;
+            if (!info || info.success === false) {
+              setConnectionState('error', 'Não foi possível obter dados do arquivo. Tente fechar e abrir o plugin de novo.');
+              return;
+            }
+            if (!info.fileInfo || typeof info.fileInfo !== 'object') {
+              setConnectionState('error', 'Resposta do plugin sem fileInfo. Recarregue o plugin (Plugins → Development → Figma Desktop Bridge).');
+              return;
+            }
+            if (!info.fileInfo.fileKey) {
+              setConnectionState('error', 'Arquivo sem fileKey. Salve o arquivo no Figma (File → Save ou Cmd+S) e clique em Conectar de novo.');
+              return;
+            }
+            ws.send(JSON.stringify({ type: 'FILE_INFO', data: info.fileInfo }));
+            setConnectionState('connected', null);
+          }).catch(function(err) {
+            if (ws && ws.readyState === 1) {
+              var msg = err && err.message ? err.message : String(err);
+              if (msg.indexOf('timed out') !== -1) {
+                setConnectionState('error', 'Plugin não respondeu a tempo. Recarregue o plugin (Plugins → Development → Figma Desktop Bridge) e clique em Conectar de novo.');
+              } else {
+                setConnectionState('error', 'Falha ao obter fileKey: ' + msg + '. Salve o arquivo e tente novamente.');
+              }
+            }
+          });
+        };
+
+        ws.onmessage = function(event) {
+          try {
+            var message = JSON.parse(event.data);
+            if (message.type === 'broadcast' && message.message) {
+              message = message.message;
+              message.method = message.method || message.command;
+            }
+            if (!message.id || !message.method) return;
+
+            var method = message.method;
+            var methodForMap = method;
+            if (method === 'figma_execute') methodForMap = 'EXECUTE_CODE';
+            else if (method === 'figma_set_fill_variable') methodForMap = 'SET_NODE_FILL_VARIABLE';
+            else if (method === 'figma_audit_and_link_unlinked_fills') methodForMap = 'AUDIT_AND_LINK_UNLINKED_FILLS';
+            else if (method === 'figma_repair_broken_bindings') methodForMap = 'REPAIR_BROKEN_BINDINGS';
+            else if (method === 'figma_scan_broken_bindings') methodForMap = 'SCAN_BROKEN_BINDINGS';
+            else if (method === 'figma_get_nodes_with_unlinked_fills') methodForMap = 'GET_NODES_WITH_UNLINKED_FILLS';
+            else if (method === 'figma_replace_color_token') methodForMap = 'REPLACE_COLOR_TOKEN';
+            else if (method === 'figma_run_recursive_token_fix' || method === 'run_recursive_token_fix') methodForMap = 'RUN_RECURSIVE_TOKEN_FIX';
+
+            var handler = methodMap[methodForMap] || methodMap[method];
+            if (!handler) {
+              ws.send(JSON.stringify({ id: message.id, error: 'Unknown method: ' + message.method }));
+              return;
+            }
+
+            var needApproval = window.__approvalRequired && (APPROVAL_METHODS[message.method] || APPROVAL_METHODS[methodForMap]);
+            if (needApproval) {
+              window.__pendingActions.push({ id: message.id, method: message.method, params: message.params || {} });
+              renderPendingActions();
+              ws.send(JSON.stringify({ id: message.id, result: { pending: true, message: 'Aguardando aprovação no plugin.' } }));
+              return;
+            }
+
+            Promise.resolve(handler(message.params || {}))
+              .then(function(result) {
+                ws.send(JSON.stringify({ id: message.id, result: result }));
+                var desc = actionDescription(message.method, message.params || {}, result);
+                var undoPayload = null;
+                if (result && result.success && message.method === 'RENAME_NODE' && result.oldName != null) {
+                  undoPayload = { actionType: 'RENAME_NODE', nodeId: message.params && message.params.nodeId, newName: result.oldName, description: 'Renomear de volta para ' + result.oldName };
+                } else if (result && result.success && message.method === 'CREATE_CHILD_NODE' && result.node && result.node.id) {
+                  undoPayload = { actionType: 'DELETE_NODE', nodeId: result.node.id, description: 'Remover nó criado' };
+                } else if (result && result.success && message.method === 'INSTANTIATE_COMPONENT' && result.instance && result.instance.id) {
+                  undoPayload = { actionType: 'DELETE_NODE', nodeId: result.instance.id, description: 'Remover instância' };
+                }
+                pushHistory({ method: message.method, description: desc, timestamp: Date.now(), undoPayload: undoPayload, canUndo: !!undoPayload, params: message.params || {}, result: result });
+              })
+              .catch(function(err) {
+                ws.send(JSON.stringify({ id: message.id, error: err.message || String(err) }));
+              });
+          } catch (e) {
+            console.error('[MCP Bridge] WS:', e);
+          }
+        };
+
+        ws.onclose = function(event) {
+          wsConnected = false;
+          var wasReplaced = (event.code === 1000 && (event.reason === 'Replaced by new connection' || event.reason === 'Replaced by same file reconnection'));
+          if (wasReplaced) return;
+          if (event.code !== 1000 && event.reason) lastConnectionError = event.reason;
+          else if (wsReconnectAttempts === 0) lastConnectionError = 'Conexão fechada (porta ' + wsPort + ')';
+          setConnectionState('disconnected', lastConnectionError);
+
+          if (wsReconnectAttempts === 0 && wsPortScanIndex < wsPorts.length - 1) {
+            tryNextPort();
+            return;
+          }
+          wsReconnectAttempts++;
+          if (wsReconnectAttempts <= wsMaxReconnectAttempts) {
+            wsPortScanIndex = 0;
+            wsPort = wsPorts[0];
+            setTimeout(wsConnect, wsReconnectDelay);
+            wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, wsMaxReconnectDelay);
+          }
+        };
+
+        ws.onerror = function() { };
+      }
+
+      window.__wsConnect = wsConnect;
+      window.__wsSendResult = function(id, result) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ id: id, result: result }));
+      };
+      window.__wsSendError = function(id, err) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ id: id, error: err.message || String(err) }));
+      };
+
+      window.__processNextPending = function() {
+        if (window.__pendingActions.length === 0) return;
+        var item = window.__pendingActions.shift();
+        renderPendingActions();
+        var methodForMap = item.method;
+        if (item.method === 'figma_execute') methodForMap = 'EXECUTE_CODE';
+        else if (item.method === 'figma_set_fill_variable') methodForMap = 'SET_NODE_FILL_VARIABLE';
+        else if (item.method === 'figma_audit_and_link_unlinked_fills') methodForMap = 'AUDIT_AND_LINK_UNLINKED_FILLS';
+        else if (item.method === 'figma_repair_broken_bindings') methodForMap = 'REPAIR_BROKEN_BINDINGS';
+        else if (item.method === 'figma_scan_broken_bindings') methodForMap = 'SCAN_BROKEN_BINDINGS';
+        else if (item.method === 'figma_get_nodes_with_unlinked_fills') methodForMap = 'GET_NODES_WITH_UNLINKED_FILLS';
+        else if (item.method === 'figma_replace_color_token') methodForMap = 'REPLACE_COLOR_TOKEN';
+        else if (item.method === 'figma_run_recursive_token_fix' || item.method === 'run_recursive_token_fix') methodForMap = 'RUN_RECURSIVE_TOKEN_FIX';
+        var handler = methodMap[methodForMap] || methodMap[item.method];
+        if (!handler) {
+          window.__wsSendError(item.id, new Error('Unknown method'));
+          return;
+        }
+        Promise.resolve(handler(item.params))
+          .then(function(result) {
+            window.__wsSendResult(item.id, result);
+            var desc = actionDescription(item.method, item.params, result);
+            var undoPayload = null;
+            if (result && result.success && item.method === 'RENAME_NODE' && result.oldName != null) {
+              undoPayload = { actionType: 'RENAME_NODE', nodeId: item.params && item.params.nodeId, newName: result.oldName, description: 'Renomear de volta' };
+            } else if (result && result.success && (item.method === 'CREATE_CHILD_NODE' || item.method === 'INSTANTIATE_COMPONENT') && result.node) {
+              var nodeId = (result.node && result.node.id) || (result.instance && result.instance.id);
+              if (nodeId) undoPayload = { actionType: 'DELETE_NODE', nodeId: nodeId, description: 'Remover nó' };
+            }
+            pushHistory({ method: item.method, description: desc, timestamp: Date.now(), undoPayload: undoPayload, canUndo: !!undoPayload, params: item.params || {}, result: result });
+          })
+          .catch(function(err) {
+            window.__wsSendError(item.id, err);
+          });
+      };
+
+      window.__wsForwardVariables = function(data) {
+        if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'VARIABLES_DATA', data: data }));
+      };
+      window.__wsForwardDocumentChange = function(data) {
+        if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'DOCUMENT_CHANGE', data: data }));
+      };
+      window.__wsForwardConsoleCapture = function(data) {
+        if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'CONSOLE_CAPTURE', data: data }));
+      };
+      window.__wsForwardSelectionChange = function(data) {
+        if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'SELECTION_CHANGE', data: data }));
+      };
+      window.__wsForwardPageChange = function(data) {
+        if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'PAGE_CHANGE', data: data }));
+      };
+    })();
+
+    // ============================================================================
+    // MESSAGE HANDLER (from plugin worker)
+    // ============================================================================
+    window.onmessage = (event) => {
+      var msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      var handleResult = function(resultType, dataKey) {
+        var request = window.__figmaPendingRequests.get(msg.requestId);
+        if (request) {
+          if (request.timeoutId) clearTimeout(request.timeoutId);
+          if (msg.success) {
+            var result = { success: true };
+            if (dataKey && msg[dataKey] !== undefined) result[dataKey] = msg[dataKey];
+            if (msg.data !== undefined) result.data = msg.data;
+            if (msg.oldName !== undefined) result.oldName = msg.oldName;
+            if (msg.instance !== undefined) result.instance = msg.instance;
+            if (msg.node !== undefined) result.node = msg.node;
+            request.resolve(result);
+          } else {
+            request.resolve({ success: false, error: msg.error || 'Unknown error' });
+          }
+          window.__figmaPendingRequests.delete(msg.requestId);
+        }
+      };
+
+      switch (msg.type) {
+        case 'VARIABLES_DATA':
+          window.__figmaVariablesData = msg.data;
+          window.__figmaVariablesReady = true;
+          if (getStatusLabel() && getStatusLabel().textContent === 'Desconectado') setConnectionState('disconnected', null);
+          if (window.__wsForwardVariables) window.__wsForwardVariables(msg.data);
+          break;
+        case 'COMPONENT_DATA':
+          window.__figmaComponentData = msg.data;
+          var req = window.__figmaComponentRequests.get(msg.requestId);
+          if (req) { req.resolve(msg.data); window.__figmaComponentRequests.delete(msg.requestId); }
+          break;
+        case 'COMPONENT_ERROR':
+          var req2 = window.__figmaComponentRequests.get(msg.requestId);
+          if (req2) { req2.reject(new Error(msg.error)); window.__figmaComponentRequests.delete(msg.requestId); }
+          break;
+        case 'ERROR':
+          window.__figmaVariablesReady = false;
+          setConnectionState('error', msg.error || 'Erro ao carregar variáveis');
+          break;
+        case 'EXECUTE_CODE_RESULT': handleResult('EXECUTE_CODE', 'result'); break;
+        case 'UPDATE_VARIABLE_RESULT': handleResult('UPDATE_VARIABLE', 'variable'); break;
+        case 'CREATE_VARIABLE_RESULT': handleResult('CREATE_VARIABLE', 'variable'); break;
+        case 'CREATE_VARIABLE_COLLECTION_RESULT': handleResult('CREATE_VARIABLE_COLLECTION', 'collection'); break;
+        case 'DELETE_VARIABLE_RESULT': handleResult('DELETE_VARIABLE', 'deleted'); break;
+        case 'DELETE_VARIABLE_COLLECTION_RESULT': handleResult('DELETE_VARIABLE_COLLECTION', 'deleted'); break;
+        case 'REFRESH_VARIABLES_RESULT': handleResult('REFRESH_VARIABLES', null); break;
+        case 'RENAME_VARIABLE_RESULT': handleResult('RENAME_VARIABLE', 'variable'); break;
+        case 'SET_VARIABLE_DESCRIPTION_RESULT': handleResult('SET_VARIABLE_DESCRIPTION', 'variable'); break;
+        case 'ADD_MODE_RESULT': handleResult('ADD_MODE', 'collection'); break;
+        case 'RENAME_MODE_RESULT': handleResult('RENAME_MODE', 'collection'); break;
+        case 'GET_LOCAL_COMPONENTS_RESULT': handleResult('GET_LOCAL_COMPONENTS', null); break;
+        case 'TOKEN_AUDIT_GLOBAL_RESULT': {
+          var r = window.__figmaPendingRequests.get(msg.requestId);
+          if (r) { if (r.timeoutId) clearTimeout(r.timeoutId); r.resolve(msg.success ? { success: true, result: msg.result } : { success: false, error: msg.error || 'Unknown error' }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'INSTANTIATE_COMPONENT_RESULT': handleResult('INSTANTIATE_COMPONENT', 'instance'); break;
+        case 'SET_NODE_DESCRIPTION_RESULT': handleResult('SET_NODE_DESCRIPTION', 'node'); break;
+        case 'ADD_COMPONENT_PROPERTY_RESULT': handleResult('ADD_COMPONENT_PROPERTY', 'propertyName'); break;
+        case 'EDIT_COMPONENT_PROPERTY_RESULT': handleResult('EDIT_COMPONENT_PROPERTY', 'propertyName'); break;
+        case 'DELETE_COMPONENT_PROPERTY_RESULT': handleResult('DELETE_COMPONENT_PROPERTY', null); break;
+        case 'RESIZE_NODE_RESULT': handleResult('RESIZE_NODE', 'node'); break;
+        case 'MOVE_NODE_RESULT': handleResult('MOVE_NODE', 'node'); break;
+        case 'SET_NODE_FILLS_RESULT': handleResult('SET_NODE_FILLS', 'node'); break;
+        case 'SET_NODE_FILL_STYLE_RESULT': handleResult('SET_NODE_FILL_STYLE', 'node'); break;
+        case 'SET_NODE_FILL_VARIABLE_RESULT': handleResult('SET_NODE_FILL_VARIABLE', 'node'); break;
+        case 'GET_NODES_WITH_UNLINKED_FILLS_RESULT': {
+          var r2 = window.__figmaPendingRequests.get(msg.requestId);
+          if (r2) { if (r2.timeoutId) clearTimeout(r2.timeoutId); r2.resolve(msg.success ? { success: true, nodes: msg.nodes || [] } : { success: false, error: msg.error || '', nodes: [] }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'AUDIT_AND_LINK_UNLINKED_FILLS_RESULT': {
+          var rAudit = window.__figmaPendingRequests.get(msg.requestId);
+          if (rAudit) { if (rAudit.timeoutId) clearTimeout(rAudit.timeoutId); rAudit.resolve(msg.success ? { success: true, result: { linked: msg.linked || [], noMatch: msg.noMatch || [], totalUnlinked: msg.totalUnlinked || 0, totalColorVariables: msg.totalColorVariables || 0 } } : { success: false, error: msg.error || '', result: { linked: [], noMatch: [] } }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'SET_NODE_STROKES_RESULT': handleResult('SET_NODE_STROKES', 'node'); break;
+        case 'SET_NODE_OPACITY_RESULT': handleResult('SET_NODE_OPACITY', 'node'); break;
+        case 'SET_NODE_CORNER_RADIUS_RESULT': handleResult('SET_NODE_CORNER_RADIUS', 'node'); break;
+        case 'CLONE_NODE_RESULT': handleResult('CLONE_NODE', 'node'); break;
+        case 'DELETE_NODE_RESULT': handleResult('DELETE_NODE', 'deleted'); break;
+        case 'RENAME_NODE_RESULT': handleResult('RENAME_NODE', 'node'); break;
+        case 'SET_TEXT_CONTENT_RESULT': handleResult('SET_TEXT_CONTENT', 'node'); break;
+        case 'SET_ALL_TEXT_LAYERS_RESULT': {
+          var r3 = window.__figmaPendingRequests.get(msg.requestId);
+          if (r3) { if (r3.timeoutId) clearTimeout(r3.timeoutId); r3.resolve(msg.success ? { success: true, total: msg.total, updated: msg.updated, text: msg.text } : { success: false, error: msg.error || 'Unknown error' }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'APPLY_HEADING_H2_RESULT': {
+          var r4 = window.__figmaPendingRequests.get(msg.requestId);
+          if (r4) { if (r4.timeoutId) clearTimeout(r4.timeoutId); r4.resolve(msg.success ? { success: true, total: msg.total, applied: msg.applied, usedTextStyle: msg.usedTextStyle, styleName: msg.styleName } : { success: false, error: msg.error || 'Unknown error' }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'CREATE_CHILD_NODE_RESULT': handleResult('CREATE_CHILD_NODE', 'node'); break;
+        case 'CAPTURE_SCREENSHOT_RESULT': handleResult('CAPTURE_SCREENSHOT', 'image'); break;
+        case 'SET_INSTANCE_PROPERTIES_RESULT': handleResult('SET_INSTANCE_PROPERTIES', 'instance'); break;
+        case 'SET_AUTO_LAYOUT_RESULT': handleResult('SET_AUTO_LAYOUT', null); break;
+        case 'UPDATE_AUTO_LAYOUT_RESULT': handleResult('UPDATE_AUTO_LAYOUT', null); break;
+        case 'REMOVE_AUTO_LAYOUT_RESULT': handleResult('REMOVE_AUTO_LAYOUT', null); break;
+        case 'SET_LAYOUT_SIZING_RESULT': handleResult('SET_LAYOUT_SIZING', null); break;
+        case 'SET_LAYOUT_ALIGN_RESULT': handleResult('SET_LAYOUT_ALIGN', null); break;
+        case 'SET_PADDING_RESULT': handleResult('SET_PADDING', null); break;
+        case 'SET_ITEM_SPACING_RESULT': handleResult('SET_ITEM_SPACING', null); break;
+        case 'SET_WRAP_RESULT': handleResult('SET_WRAP', null); break;
+        case 'SET_CLIP_CONTENT_RESULT': handleResult('SET_CLIP_CONTENT', null); break;
+        case 'SET_SCROLL_BEHAVIOR_RESULT': handleResult('SET_SCROLL_BEHAVIOR', null); break;
+        case 'SET_COMPONENT_STATE_RESULT': handleResult('SET_COMPONENT_STATE', null); break;
+        case 'CREATE_INTERACTION_RESULT': handleResult('CREATE_INTERACTION', null); break;
+        case 'UPDATE_INTERACTION_RESULT': handleResult('UPDATE_INTERACTION', null); break;
+        case 'DELETE_INTERACTION_RESULT': handleResult('DELETE_INTERACTION', null); break;
+        case 'LINK_VARIANTS_AS_INTERACTIVE_RESULT': handleResult('LINK_VARIANTS_AS_INTERACTIVE', null); break;
+        case 'GET_VARIABLES_RESULT': handleResult('GET_VARIABLES', 'data'); break;
+        case 'GET_COLLECTIONS_RESULT': handleResult('GET_COLLECTIONS', 'data'); break;
+        case 'FIND_VARIABLE_RESULT': handleResult('FIND_VARIABLE', 'data'); break;
+        case 'GET_VARIABLE_BY_NAME_RESULT': handleResult('GET_VARIABLE_BY_NAME', 'data'); break;
+        case 'GET_VARIABLE_BY_ID_RESULT': handleResult('GET_VARIABLE_BY_ID', 'data'); break;
+        case 'SCAN_UNLINKED_TOKENS_RESULT': handleResult('SCAN_UNLINKED_TOKENS', null); break;
+        case 'SCAN_BROKEN_BINDINGS_RESULT': {
+          var rScan = window.__figmaPendingRequests.get(msg.requestId);
+          if (rScan) { if (rScan.timeoutId) clearTimeout(rScan.timeoutId); rScan.resolve(msg.success ? { success: true, broken: msg.broken || [], count: msg.count != null ? msg.count : 0 } : { success: false, error: msg.error || '', broken: [], count: 0 }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'REPAIR_BROKEN_BINDINGS_RESULT': {
+          var rRepair = window.__figmaPendingRequests.get(msg.requestId);
+          if (rRepair) { if (rRepair.timeoutId) clearTimeout(rRepair.timeoutId); rRepair.resolve(msg.success ? { success: true, repaired: msg.repaired || [], notFound: msg.notFound || [], count: msg.count != null ? msg.count : 0 } : { success: false, error: msg.error || '', repaired: [], notFound: [] }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'REPAIR_AND_RELINK_BY_TOKEN_MAP_RESULT': {
+          var rRelink = window.__figmaPendingRequests.get(msg.requestId);
+          if (rRelink) { if (rRelink.timeoutId) clearTimeout(rRelink.timeoutId); rRelink.resolve(msg.success !== false ? { success: true, linked: msg.linked || [], noMatch: msg.noMatch || [], brokenFound: msg.brokenFound || 0, unlinkedFound: msg.unlinkedFound || 0, styleOverrideFound: msg.styleOverrideFound || 0, totalFixed: msg.totalFixed != null ? msg.totalFixed : (msg.linked || []).length, tokenPathsCount: msg.tokenPathsCount || 0, variablesByPathCount: msg.variablesByPathCount || 0 } : { success: false, error: msg.error || '', linked: [], noMatch: [] }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'REPLACE_COLOR_TOKEN_RESULT': handleResult('REPLACE_COLOR_TOKEN', null); break;
+        case 'REPLACE_TYPO_TOKEN_RESULT': handleResult('REPLACE_TYPO_TOKEN', null); break;
+        case 'REPAIR_TOKENS_BY_MAP_RESULT': handleResult('REPAIR_TOKENS_BY_MAP', null); break;
+        case 'APPLY_TEXT_STYLE_RESULT': handleResult('APPLY_TEXT_STYLE', null); break;
+        case 'LOAD_FONTS_RESULT': handleResult('LOAD_FONTS', 'data'); break;
+        case 'GET_FILE_INFO_RESULT': handleResult('GET_FILE_INFO', 'fileInfo'); break;
+        case 'RELOAD_UI_RESULT': handleResult('RELOAD_UI', null); break;
+        case 'UNDO_ACTION_RESULT': {
+          var r5 = window.__figmaPendingRequests.get(msg.requestId);
+          if (r5) { if (r5.timeoutId) clearTimeout(r5.timeoutId); r5.resolve(msg.success ? { success: true } : { success: false, error: msg.error }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'DOCUMENT_CHANGE': if (window.__wsForwardDocumentChange) window.__wsForwardDocumentChange(msg.data); break;
+        case 'CONSOLE_CAPTURE': if (window.__wsForwardConsoleCapture) window.__wsForwardConsoleCapture(msg); break;
+        case 'SELECTION_CHANGE': if (window.__wsForwardSelectionChange) window.__wsForwardSelectionChange(msg.data); break;
+        case 'PAGE_CHANGE': if (window.__wsForwardPageChange) window.__wsForwardPageChange(msg.data); break;
+      }
+    };
+
+    // Restore approval toggle state from localStorage
+    var savedApproval = false;
+    try { savedApproval = localStorage.getItem('figma-bridge-approval') === '1'; } catch (e) {}
+    window.__approvalRequired = savedApproval;
+    var toggleEl = document.getElementById('toggle-approval');
+    if (toggleEl) toggleEl.classList.toggle('on', savedApproval);
+    if (typeof renderPendingActions === 'function') renderPendingActions();
+  </script>
+</body>
+</html>

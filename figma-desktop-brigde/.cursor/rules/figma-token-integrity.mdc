@@ -1,0 +1,77 @@
+---
+description: "Figma — Evitar e corrigir tokens de cor quebrados (unlinked/broken) em componentes e variantes. Escopo completo e árvore inteira. Correção recursiva em todo o subtree."
+alwaysApply: true
+---
+
+# Tokens de cor — Nunca deixar hex em componentes
+
+## Pedido "corrige os tokens nesse componente"
+
+Quando o usuário pedir para **corrigir os tokens** no componente (ex.: "corrige os tokens nesse componente", "fix the tokens in this component", "corrigir tokens no componente"), o assistente **deve chamar** a ferramenta MCP **`run_recursive_token_fix`**:
+
+- **Sem `nodeId`:** usa a **seleção atual** no Figma (recomendado se o usuário tiver o componente/frame já selecionado).
+- **Com `nodeId`:** passa o ID do nó do componente ou da página quando a seleção não for possível.
+
+Não substituir por outras ferramentas (ex.: scan + link manual); `run_recursive_token_fix` faz a correção recursiva completa (quebrados + hardcoded + overrides) com mapa padrão. A ferramenta é exposta pelo MCP **figma-console** (Figma Desktop Bridge). Ver [FIGMA-SETUP.md](../../../FIGMA-SETUP.md).
+
+---
+
+## Objetivo
+
+Garantir que nenhum fill/stroke em componentes e variantes use cor sólida (hex); tudo deve estar vinculado a variáveis (coleção Semantics). A correção deve ser **recursiva**: não só o container (ex.: background), mas **todos os elementos internos** do componente (átomo/molecula/organismo).
+
+---
+
+## Correção recursiva (subtree completo)
+
+Para cada componente alterado, o fluxo percorre **todo o subtree** e corrige:
+
+- **Texto** — cor do texto (fills em nós TEXT; token semântico ex.: text.primary, text.link, text.disabled).
+- **Ícones** — fill e stroke (token ex.: icon.inverse, icon.default).
+- **Bordas** — stroke/borderColor (token ex.: border.default).
+- **Estados** — hover/pressed/disabled/focus (cada variante/estado é um nó na árvore; já coberto pela recursão).
+- **Variações** — External/Dotted, sizes L/M/S/XS (component sets e variantes são filhos; já cobertos).
+
+Onde corrigir:
+
+- **(a)** Token quebrado/truncado (variável inexistente).
+- **(b)** Token inexistente (referência inválida).
+- **(c)** Cor hardcoded (hex/rgb sem variável) → substituir pelo token correspondente válido.
+
+Regras:
+
+- Não basta mudar o background do wrapper: o componente deve ficar **100% tokenizado** por dentro.
+- Se o estilo do filho vem de outro tema (ex.: text style global), alinhar para usar token semântico do componente (ex.: text.link / text.primary / text.disabled).
+- Se houver override local (ex.: TextStyle com cor fixa), ao aplicar variável o plugin remove fillStyleId/strokeStyleId para o token prevalecer.
+
+---
+
+## Ao corrigir tokens quebrados ou unlinked
+
+1. **Usar escopo completo:** component set + todas as variantes (por nodeId) + **toda a árvore (filhos e aninhados)**. Não limitar ao nó raiz.
+
+2. **Comando preferido (uma chamada):** usar **`run_recursive_token_fix`** com `nodeId` opcional. Se o usuário tiver um componente ou frame selecionado, omitir `nodeId` (usa seleção atual). Senão passar `nodeId` do componente/página. Corrige recursivamente no subtree: (a) tokens quebrados, (b) cores hardcoded, (c) overrides de estilo (fillStyleId/strokeStyleId). Usa mapa padrão (FCFCFD→background, FFFFFF→icon, 1C2024→text.primary, etc.). **Não exige colar JSON.**
+
+3. **Alternativa em sequência:** `figma_scan_broken_bindings(nodeId)`, `figma_get_nodes_with_unlinked_fills(nodeId)`, `figma_audit_and_link_unlinked_fills(nodeId)` no mesmo nodeId.
+
+4. **REPAIR_AND_RELINK_BY_TOKEN_MAP:** quando for necessário mapa de tokens customizado; com `scope: { type: 'node', nodeId }` o plugin percorre recursivamente o subtree.
+
+5. **Se ainda houver hex no "Selection colors":** usar `figma_execute` para percorrer a árvore e aplicar bindings em todos os nós com fill/stroke sólido sem `boundVariable`.
+
+---
+
+## Ao criar ou editar componentes
+
+- Nunca aplicar cor sólida (hex) em fills ou strokes; sempre usar variável do sistema (Semantics).
+- Para ícones/botões usados como instância: garantir que o **componente principal** (ex.: Shared/Atom/Button, Shared/Icon/Alert) use variáveis; assim as instâncias herdam tokens e não aparecem como hex no "Selection colors".
+
+---
+
+## Comandos MCP relevantes
+
+- **`run_recursive_token_fix`** — **Preferir** para corrigir tokens na seleção/componente: correção recursiva (quebrados + hardcoded + estilo), sem colar JSON. Parâmetro opcional: `nodeId`.
+- `figma_scan_broken_bindings` — referências a variável inexistente.
+- `figma_get_nodes_with_unlinked_fills` — nós com fill sem variável.
+- `figma_audit_and_link_unlinked_fills` — vincular por hex igual.
+- `figma_set_fill_variable` — vincular nó a variableId.
+- `figma_execute` — percorrer árvore e aplicar bindings quando o escopo do plugin não retornar nós.
