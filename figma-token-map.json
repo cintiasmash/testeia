@@ -1,0 +1,55 @@
+{
+  "_description": "Design token map for Figma. Maps rule names to variableId. File: TESTE TALK TO FIGMA. Regenerate with figma_get_variables if the file changes.",
+  "fileKey": "l7VRuE2AQuGKTaqn7ZHwzW",
+  "collections": {
+    "Semantics": "VariableCollectionId:13863:7486",
+    "Primitives": "VariableCollectionId:9603:8465"
+  },
+  "colors": {
+    "surface/default": {
+      "variableId": "VariableID:13853:22282",
+      "name": "color/light/color/surface/default"
+    },
+    "surface/raised": {
+      "variableId": "VariableID:13853:22259",
+      "name": "color/light/color/surface/raised"
+    },
+    "text/primary": {
+      "variableId": "VariableID:13853:22387",
+      "name": "color/light/color/text/primary"
+    },
+    "text/secondary": {
+      "variableId": "VariableID:13853:22375",
+      "name": "color/light/color/text/secondary"
+    },
+    "text/tertiary": {
+      "variableId": "VariableID:13853:22245",
+      "name": "color/light/color/text/tertiary"
+    },
+    "border/default": {
+      "variableId": "VariableID:13853:22222",
+      "name": "color/light/color/border/default"
+    },
+    "border/subtle": {
+      "variableId": "VariableID:13853:22340",
+      "name": "color/light/color/border/subtle"
+    },
+    "icon/primary": {
+      "variableId": "VariableID:13853:22295",
+      "name": "color/light/color/icon/primary"
+    }
+  },
+  "dimensions": {
+    "dimension-1": { "variableId": "VariableID:9603:8484", "name": "dimension/dimension-1", "value": 4 },
+    "dimension-2": { "variableId": "VariableID:9603:8486", "name": "dimension/dimension-2", "value": 8 },
+    "dimension-3": { "variableId": "VariableID:9603:8488", "name": "dimension/dimension-3", "value": 12 },
+    "dimension-4": { "variableId": "VariableID:9603:8490", "name": "dimension/dimension-4", "value": 16 },
+    "dimension-6": { "variableId": "VariableID:9603:8494", "name": "dimension/dimension-6", "value": 24 },
+    "dimension-8": { "variableId": "VariableID:9603:8497", "name": "dimension/dimension-8", "value": 32 }
+  },
+  "radius": {
+    "radius-200": { "variableId": "VariableID:13853:22519", "name": "border radius/radius-200", "value": 8 },
+    "radius-300": { "variableId": "VariableID:13853:22529", "name": "border radius/radius-300", "value": 12 },
+    "radius-400": { "variableId": "VariableID:13853:22517", "name": "border radius/radius-400", "value": 16 }
+  }
+}

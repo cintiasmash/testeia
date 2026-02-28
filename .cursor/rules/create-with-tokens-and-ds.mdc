@@ -1,0 +1,34 @@
+---
+description: "Ao criar componentes, telas ou cards, usar sempre os tokens e o design system do projeto."
+alwaysApply: true
+---
+
+# Criar sempre com tokens e design system
+
+Quando o usuário pedir para **criar** algo (componente, tela, card, organismo, molécula, átomo, etc.), o assistente **deve** basear a criação em:
+
+## 1. Tokens do projeto
+
+- **Arquivos:** `tokens/primitives.json`, `tokens/semantic.json`, `tokens/composite.json`, `tokens/typography.json`.
+- **Uso:** dimension (padding, gap, radius), iconSize/size (ícones, avatares), cores semânticas (`Semantic.color.light` / `Semantic.color.dark`), tipografia (fontFamily, fontSize, lineHeight).
+- **Figma:** usar `figma-token-map.json` para mapear token → variableId; seguir [design-tokens-figma.md](../../design-tokens-figma.md). Resolver variáveis por nome (ex.: `color/light/color/surface/default`) ou valores numéricos do mapa quando não der para vincular.
+
+## 2. Design system (rules)
+
+- **Regras:** [figma-desktop-brigde/.cursor/rules/project-overview.mdc](../../figma-desktop-brigde/.cursor/rules/project-overview.mdc).
+- **Obrigatório ao criar:**
+  - **Naming:** `Context/Level/Name` — prefixo Shop, Share ou Giftee; níveis Atom, Molecule, Organism, Template, Page; PascalCase; variáveis como `{PascalCase}`.
+  - **Auto Layout:** todos os frames/containers com Auto Layout, padding e gap definidos (nunca posicionamento manual).
+  - **Hierarchy:** Root → Container → Stack → Block → Element.
+  - **Dimensões:** usar `dimension-*` (ex.: dimension-4 = 16) para padding/gap; `size-*` para ícones/avatares; radius conforme composite (radius-200, radius-300, radius-400).
+  - **Tipografia:** Roboto (Regular, Bold, Medium, Semi Bold conforme necessário). Carregar fonte antes de criar texto (`figma.loadFontAsync`); se Roboto não estiver disponível no arquivo, usar Inter como fallback para o texto renderizar.
+  - **Cores:** apenas tokens semânticos (surface/default, surface/raised, text/primary, text/secondary, text/tertiary, border/subtle, etc.). Nunca hex solto; no Figma, vincular a variáveis ou usar valores do mapa e depois `run_recursive_token_fix` na seleção se necessário.
+
+## 3. Integridade de tokens (Figma)
+
+- Seguir também [figma-token-integrity.mdc](../../figma-desktop-brigde/.cursor/rules/figma-token-integrity.mdc): nunca aplicar cor sólida (hex) em fills/strokes; usar variável do sistema. Ao corrigir tokens, usar `run_recursive_token_fix`.
+
+## Resumo
+
+- **Criar** = sempre com tokens (`tokens/*.json` + `figma-token-map.json` no Figma) e design system (naming, Auto Layout, hierarchy, dimension/size, Roboto, cores semânticas).
+- Não inventar cores, espaçamentos ou tipografia; usar apenas os valores definidos nos tokens e nas rules.

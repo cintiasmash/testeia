@@ -1,0 +1,50 @@
+{
+  "size": {
+    "size-xs": { "$type": "sizing", "$value": "{dimension.dimension-3}" },
+    "size-sm": { "$type": "sizing", "$value": "{dimension.dimension-4}" },
+    "size-md": { "$type": "sizing", "$value": "{dimension.dimension-5}" },
+    "size-lg": { "$type": "sizing", "$value": "{dimension.dimension-6}" },
+    "size-xl": { "$type": "sizing", "$value": "{dimension.dimension-7}" },
+    "size-2xl": { "$type": "sizing", "$value": "{dimension.dimension-8}" },
+    "size-3xl": { "$type": "sizing", "$value": "{dimension.dimension-9}" },
+    "size-4xl": { "$type": "sizing", "$value": "{dimension.dimension-9-5}" },
+    "size-5xl": { "$type": "sizing", "$value": "{dimension.dimension-10}" },
+    "size-6xl": { "$type": "sizing", "$value": "{dimension.dimension-10-5}" },
+    "size-7xl": { "$type": "sizing", "$value": "{dimension.dimension-11}" },
+    "size-8xl": { "$type": "sizing", "$value": "{dimension.dimension-12}" },
+    "size-9xl": { "$type": "sizing", "$value": "{dimension.dimension-13}" }
+  },
+  "border radius": {
+    "radius-0": { "$type": "borderRadius", "$value": "{dimension.dimension-0}" },
+    "radius-50": { "$type": "borderRadius", "$value": "{dimension.dimension-0-5}" },
+    "radius-100": { "$type": "borderRadius", "$value": "{dimension.dimension-1}" },
+    "radius-200": { "$type": "borderRadius", "$value": "{dimension.dimension-2}" },
+    "radius-300": { "$type": "borderRadius", "$value": "{dimension.dimension-3}" },
+    "radius-400": { "$type": "borderRadius", "$value": "{dimension.dimension-4}" },
+    "radius-500": { "$type": "borderRadius", "$value": "{dimension.dimension-5}" },
+    "radius-600": { "$type": "borderRadius", "$value": "{dimension.dimension-6}" },
+    "radius-700": { "$type": "borderRadius", "$value": "{dimension.dimension-8}" },
+    "radius-full": { "$type": "borderRadius", "$value": "{dimension.dimension-999}" }
+  },
+  "spacing": {
+    "none": { "$type": "spacing", "$value": "{dimension.dimension-0}" },
+    "xxs": { "$type": "spacing", "$value": "{dimension.dimension-0-5}" },
+    "xs": { "$type": "spacing", "$value": "{dimension.dimension-1}" },
+    "sm": { "$type": "spacing", "$value": "{dimension.dimension-1-5}" },
+    "md": { "$type": "spacing", "$value": "{dimension.dimension-2}" },
+    "lg": { "$type": "spacing", "$value": "{dimension.dimension-3}" },
+    "xl": { "$type": "spacing", "$value": "{dimension.dimension-4}" },
+    "2xl": { "$type": "spacing", "$value": "{dimension.dimension-5}" },
+    "3xl": { "$type": "spacing", "$value": "{dimension.dimension-6}" },
+    "4xl": { "$type": "spacing", "$value": "{dimension.dimension-8}" },
+    "5xl": { "$type": "spacing", "$value": "{dimension.dimension-9}" },
+    "6xl": { "$type": "spacing", "$value": "{dimension.dimension-12}" },
+    "7xl": { "$type": "spacing", "$value": "{dimension.dimension-14}" }
+  },
+  "border width": {
+    "none": { "$type": "borderWidth", "$value": "{dimension.dimension-0}" },
+    "thin": { "$type": "borderWidth", "$value": "{dimension.dimension-0-5}" },
+    "default": { "$type": "borderWidth", "$value": "{dimension.dimension-1}" },
+    "thick": { "$type": "borderWidth", "$value": "{dimension.dimension-2}" }
+  }
+}

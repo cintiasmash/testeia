@@ -1,0 +1,236 @@
+{
+  "Typography": {
+    "Display": {
+      "Large": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 700,
+          "fontSize": "{size.size-8xl}",
+          "lineHeight": "{size.size-9xl}",
+          "letterSpacing": "-2%"
+        }
+      },
+      "Medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 700,
+          "fontSize": "{size.size-6xl}",
+          "lineHeight": "{size.size-7xl}",
+          "letterSpacing": "-1%"
+        }
+      },
+      "Small": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 600,
+          "fontSize": "{size.size-5xl}",
+          "lineHeight": "{size.size-6xl}",
+          "letterSpacing": "-1%"
+        }
+      }
+    },
+    "Headline": {
+      "Large": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 600,
+          "fontSize": "{size.size-4xl}",
+          "lineHeight": "{size.size-5xl}",
+          "letterSpacing": "-1%"
+        }
+      },
+      "Medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 600,
+          "fontSize": "{size.size-3xl}",
+          "lineHeight": "{size.size-4xl}",
+          "letterSpacing": "-1%"
+        }
+      },
+      "Small": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-2xl}",
+          "lineHeight": "{size.size-3xl}",
+          "letterSpacing": "-1%"
+        }
+      }
+    },
+    "Title": {
+      "Large": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-xl}",
+          "lineHeight": "{size.size-2xl}",
+          "letterSpacing": "-0.5%"
+        }
+      },
+      "Medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-lg}",
+          "lineHeight": "{size.size-xl}",
+          "letterSpacing": "-0.5%"
+        }
+      },
+      "Small": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-md}",
+          "lineHeight": "{size.size-lg}",
+          "letterSpacing": "-0.5%"
+        }
+      },
+      "Bold": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 700,
+          "fontSize": "{size.size-md}",
+          "lineHeight": "{size.size-lg}",
+          "letterSpacing": "-0.5%"
+        }
+      }
+    },
+    "Body": {
+      "Large": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 400,
+          "fontSize": "{size.size-md}",
+          "lineHeight": "{size.size-lg}",
+          "letterSpacing": "0%"
+        }
+      },
+      "Medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 400,
+          "fontSize": "{size.size-sm}",
+          "lineHeight": "{size.size-md}",
+          "letterSpacing": "0%"
+        }
+      },
+      "Small": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 400,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      },
+      "Semibold": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 600,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      },
+      "Bold": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 700,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      }
+    },
+    "Label": {
+      "Large": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-sm}",
+          "lineHeight": "{size.size-md}",
+          "letterSpacing": "0%"
+        }
+      },
+      "Medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      }
+    },
+    "Caption": {
+      "1 Strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 600,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      },
+      "1 Medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 500,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      },
+      "1 Normal": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 400,
+          "fontSize": "{size.size-xs}",
+          "lineHeight": "{size.size-sm}",
+          "letterSpacing": "0%"
+        }
+      },
+      "2 Strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 600,
+          "fontSize": "{Typography.fontSize.2-5}",
+          "lineHeight": "{size.size-xs}",
+          "letterSpacing": "0%"
+        }
+      },
+      "2 Normal": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "Roboto",
+          "fontWeight": 400,
+          "fontSize": "{Typography.fontSize.2-5}",
+          "lineHeight": "{size.size-xs}",
+          "letterSpacing": "0%"
+        }
+      }
+    }
+  }
+}
