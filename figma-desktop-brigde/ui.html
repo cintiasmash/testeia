@@ -477,18 +477,29 @@
     function getStatusText() { return document.getElementById('status-text'); }
     function getConnectionError() { return document.getElementById('connection-error'); }
 
-    function setConnectionState(state, errorMessage) {
+    function setConnectionState(state, errorMessage, connectedPort) {
       var dot = getStatusDot();
       var label = getStatusLabel();
       var textEl = getStatusText();
       var errEl = getConnectionError();
-      var stateStr = state === 'connected' ? 'Conectado' : (state === 'loading' ? 'Conectando…' : (state === 'error' ? 'Erro' : 'Desconectado'));
+      var stateStr = state === 'connected' ? (connectedPort ? 'Conectado (porta ' + connectedPort + ')' : 'Conectado') : (state === 'loading' ? 'Conectando…' : (state === 'error' ? 'Erro' : 'Desconectado'));
       if (dot) dot.className = 'status-dot ' + state;
       if (label) label.textContent = (state === 'loading' && errorMessage) ? errorMessage : stateStr;
       if (textEl) textEl.textContent = (state === 'loading' && errorMessage) ? errorMessage : stateStr;
       if (errEl) {
-        if (errorMessage && state !== 'loading') { errEl.textContent = errorMessage; errEl.style.display = 'block'; }
-        else { errEl.textContent = ''; errEl.style.display = 'none'; }
+        if (state === 'loading') {
+          errEl.textContent = '';
+          errEl.style.display = 'none';
+        } else if (errorMessage) {
+          errEl.textContent = errorMessage;
+          errEl.style.display = 'block';
+        } else if (state === 'disconnected' || state === 'error') {
+          errEl.textContent = 'Não conectado. Verifique se o MCP figma-console está rodando no Cursor e clique em Conectar.';
+          errEl.style.display = 'block';
+        } else {
+          errEl.textContent = '';
+          errEl.style.display = 'none';
+        }
       }
     }
 
@@ -1030,7 +1041,7 @@
             setTimeout(wsConnect, wsReconnectDelay);
             wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, wsMaxReconnectDelay);
           } else {
-            lastConnectionError = 'Nenhum servidor MCP encontrado nas portas ' + wsPorts.slice(0, 4).join(', ') + '…';
+            lastConnectionError = 'Nenhum servidor MCP encontrado nas portas 9229, 9230, 9223–9232. Confira: 1) Cursor está aberto com o MCP figma-console ativo. 2) Reinicie o MCP nas configurações do Cursor. 3) Use o plugin importado de figma-desktop-brigde.';
             setConnectionState('error', lastConnectionError);
           }
         }
@@ -1074,7 +1085,7 @@
               return;
             }
             ws.send(JSON.stringify({ type: 'FILE_INFO', data: info.fileInfo }));
-            setConnectionState('connected', null);
+            setConnectionState('connected', null, wsPort);
           }).catch(function(err) {
             if (ws && ws.readyState === 1) {
               var msg = err && err.message ? err.message : String(err);
@@ -1147,8 +1158,17 @@
           wsConnected = false;
           var wasReplaced = (event.code === 1000 && (event.reason === 'Replaced by new connection' || event.reason === 'Replaced by same file reconnection'));
           if (wasReplaced) return;
-          if (event.code !== 1000 && event.reason) lastConnectionError = event.reason;
-          else if (wsReconnectAttempts === 0) lastConnectionError = 'Conexão fechada (porta ' + wsPort + ')';
+          if (event.reason) {
+            lastConnectionError = event.reason;
+          } else if (event.code === 1006) {
+            lastConnectionError = 'Conexão fechada inesperadamente. O MCP pode ter parado ou a rede falhou. Tente clicar em Conectar novamente.';
+          } else if (event.code === 1002) {
+            lastConnectionError = 'Erro de protocolo na conexão com o MCP. Reinicie o plugin e o MCP no Cursor.';
+          } else if (event.code === 1011) {
+            lastConnectionError = 'Erro no servidor MCP. Reinicie o MCP no Cursor.';
+          } else {
+            lastConnectionError = 'Conexão fechada (código ' + event.code + '). Clique em Conectar para tentar de novo.';
+          }
           setConnectionState('disconnected', lastConnectionError);
 
           if (wsReconnectAttempts === 0 && wsPortScanIndex < wsPorts.length - 1) {
@@ -1164,7 +1184,10 @@
           }
         };
 
-        ws.onerror = function() { };
+        ws.onerror = function() {
+          lastConnectionError = 'Falha de rede ao conectar (porta ' + wsPort + '). Verifique se o MCP está rodando no Cursor.';
+          setConnectionState('error', lastConnectionError);
+        };
       }
 
       window.__wsConnect = wsConnect;
@@ -1393,6 +1416,8 @@
     var toggleEl = document.getElementById('toggle-approval');
     if (toggleEl) toggleEl.classList.toggle('on', savedApproval);
     if (typeof renderPendingActions === 'function') renderPendingActions();
+    // Mostrar dica de conexão ao abrir o plugin (estado desconectado)
+    if (typeof setConnectionState === 'function') setConnectionState('disconnected', null);
   </script>
 </body>
 </html>
