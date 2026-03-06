@@ -1,0 +1,18 @@
+---
+description: "Design system — Usar o export Figma (figma-components.json) como referência para criar/alterar componentes e ser assertivo com variantes, tokens e estrutura."
+alwaysApply: true
+---
+
+# Design system — Fonte de verdade no Figma
+
+Ao criar, alterar ou revisar componentes de UI, telas, átomos, moléculas, organismos ou qualquer elemento de design system no Figma:
+
+1. **Consulte** o arquivo `design-system/figma-components.json` (caminho relativo à raiz do projeto figma-desktop-brigde). Esse JSON contém o export estruturado dos componentes do Figma (componentName, description, variants, propriedades visuais, tipografia, tokens de cor, estrutura interna, uso de variables).
+
+2. **Se o arquivo existir e tiver `components` preenchido:** use apenas **componentNames**, **variants**, **propriedades visuais** (padding, spacing, radius), **tipografia** e **tokens de cor** que existam nesse export. Mantenha consistência com a **estrutura interna** (auto layout, direction, gap) descrita por componente. Se o JSON indicar uso de variables/tokens, prefira variáveis do sistema em vez de valores soltos.
+
+3. **Se `figma-components.json` não existir ou `components` estiver vazio:** siga as regras existentes: tokens em `tokens/*.json` (quando disponíveis no workspace), project-overview.mdc (naming, hierarchy, Auto Layout, dimension/size, typography, color governance) e figma-token-integrity.mdc. Quando o usuário gerar o export do Figma e salvar em `design-system/figma-components.json`, passe a usar esse arquivo como referência prioritária.
+
+4. **Atualização do export:** o usuário pode atualizar o JSON selecionando componentes no Figma e rodando o fluxo de export (MCP: figma_get_selection + figma_get_component/figma_get_component_details por componente, montando `{ "components": [] }`). Manter o arquivo atualizado aumenta a assertividade nas sugestões.
+
+Não alterar outras regras do projeto; esta regra complementa project-overview e figma-token-integrity.

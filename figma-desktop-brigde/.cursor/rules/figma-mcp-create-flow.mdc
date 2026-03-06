@@ -1,0 +1,54 @@
+---
+description: "Figma MCP — Ao pedir criar componente, tela ou variável: usar o MCP para criar no Figma conectado, respeitando tokens e design system. Criar tela = instâncias; criar mestre/do zero = figma_execute ou create_child."
+alwaysApply: true
+---
+
+# Criar no Figma via MCP — componente, tela, variável
+
+Quando o usuário pedir para **criar** um **componente**, **tela** ou **variável** no Figma, o assistente **deve**:
+
+1. **Acessar o Figma correspondente** via MCP (Figma Desktop Bridge conectado).
+2. **Criar de fato no documento** usando as ferramentas do MCP, não apenas descrever ou sugerir.
+3. **Respeitar sempre** os tokens e as regras dos documentos: [figma-tokens-from-json.mdc](figma-tokens-from-json.mdc) (apenas tokens dos JSON do projeto; fonte só Roboto, nunca Inter), [project-overview.mdc](project-overview.mdc), [figma-token-integrity.mdc](figma-token-integrity.mdc), [design-system-figma.mdc](design-system-figma.mdc) e a rule da raiz [create-with-tokens-and-ds.mdc](../../.cursor/rules/create-with-tokens-and-ds.mdc).
+
+---
+
+## O que o MCP consegue fazer
+
+### Criar tela (montar layout)
+
+- **Significado:** montar a tela **colocando instâncias** de componentes que já existem no design system (botões, cards, headers, etc.).
+- **Como:** usar `figma_search_components` para achar os componentes, depois `figma_instantiate_component` para colocar cada um na página/frame, na posição e com variantes/overrides corretos.
+- **Tokens:** ao posicionar ou ao criar o frame container, usar dimensões e espaçamentos dos tokens (dimension-*, radius-*); cores e tipografia vêm dos componentes instanciados (já tokenizados).
+
+### Criar componente novo (mestre) ou tela do zero
+
+- **Não** é o fluxo principal do MCP (ele foca em instâncias).
+- **Possível via:**
+  - **`figma_execute`** — código que usa a API do Figma: `figma.createFrame()`, `figma.createRectangle()`, `figma.createText()`, `figma.createComponent()`, etc. Obrigatório seguir a **lógica de criação (regra fixa)** em [figma-tokens-from-json.mdc](figma-tokens-from-json.mdc) § 6: tabela passo a passo (Roboto → fontName → characters sem chaves + name da layer com {PascalCase} → token de cor com verificação de variável → fontSize → frame com tokens → append → createComponent se aplicável). Naming Context/Level/Name, Auto Layout e hierarchy (Root → Container → Stack → Block → Element).
+  - **`figma_create_child`** — criar nós primitivos (FRAME, RECTANGLE, TEXT, ELLIPSE, LINE) dentro de um pai; depois pode ser necessário agrupar e transformar em componente via `figma_execute` (ex.: `figma.createComponent()` sobre seleção).
+- Ao criar do zero, **nunca** usar hex em fills/strokes; sempre vincular variáveis (ex.: text/tertiary, surface/default) conforme [figma-token-integrity.mdc](figma-token-integrity.mdc).
+
+### Criar variável (design token no Figma)
+
+- **Como:** usar as ferramentas MCP de variáveis: `figma_create_variable`, `figma_batch_create_variables`, `figma_create_variable_collection`, `figma_update_variable`, etc.
+- **Respeitar:** nomes e estrutura dos tokens do projeto (`tokens/*.json`, `figma-token-map.json`). Cores semânticas (ex.: color/light/color/text/tertiary), dimensions, radius — criar ou atualizar no modo correto (ex.: Light/Dark) da coleção Semantics.
+
+---
+
+## Fluxo obrigatório ao “criar”
+
+| Pedido do usuário | Ação |
+|-------------------|------|
+| Criar **tela** / montar tela | Verificar conexão Figma (ex.: `figma_get_status`). Buscar componentes com `figma_search_components`. Montar layout com `figma_instantiate_component` (e posição/parentId quando necessário). Respeitar tokens para padding/gap/radius do container. |
+| Criar **componente** (novo mestre) | Se existir componente similar no design system, preferir instanciar e adaptar. Se for componente novo do zero: usar `figma_execute` (ou sequência de `figma_create_child`) com naming Context/Level/Name, Auto Layout, hierarchy; cores só por variáveis (figma-token-map); tipografia **só Roboto** (nunca Inter), seguindo o fluxo em [figma-tokens-from-json.mdc](figma-tokens-from-json.mdc). |
+| Criar **variável** / token | Usar MCP (create_variable, batch_create_variables, etc.) na coleção adequada, com nome e valor alinhados a `tokens/*.json` e `figma-token-map.json`. |
+
+---
+
+## Resumo
+
+- **Criar tela** = montar com **instâncias** de componentes existentes (MCP foca nisso).
+- **Criar componente mestre** ou **tela 100% do zero** = via **figma_execute** (ou **figma_create_child** + script), sempre com tokens e design system.
+- **Criar variável** = usar ferramentas MCP de variáveis, respeitando tokens e documentos.
+- Em todos os casos: **acessar o Figma correspondente** (MCP conectado) e **criar no documento**, nunca só descrever; e **respeitar as rules** de tokens e design system.

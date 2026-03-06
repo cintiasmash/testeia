@@ -1,27 +1,30 @@
 ---
-description: "Ao criar componentes, telas ou cards, usar sempre os tokens e o design system do projeto."
+description: "Ao criar componentes, telas ou cards, usar sempre os tokens e o design system do projeto; criar no Figma via MCP quando aplicável."
 alwaysApply: true
 ---
 
 # Criar sempre com tokens e design system
 
-Quando o usuário pedir para **criar** algo (componente, tela, card, organismo, molécula, átomo, etc.), o assistente **deve** basear a criação em:
+Quando o usuário pedir para **criar** algo (componente, tela, card, variável, organismo, molécula, átomo, etc.):
 
-## 1. Tokens do projeto
+- **Criar no Figma:** usar o **MCP Figma** (Figma Desktop Bridge conectado) para acessar o arquivo correspondente e criar de fato no documento — não apenas descrever. Seguir o fluxo em [figma-desktop-brigde/.cursor/rules/figma-mcp-create-flow.mdc](figma-desktop-brigde/.cursor/rules/figma-mcp-create-flow.mdc): criar tela = instâncias de componentes; criar componente mestre ou tela do zero = figma_execute ou figma_create_child; criar variável = ferramentas MCP de variáveis.
+- **Tokens e design system:** basear a criação em:
 
-- **Arquivos:** `tokens/primitives.json`, `tokens/semantic.json`, `tokens/composite.json`, `tokens/typography.json`.
-- **Uso:** dimension (padding, gap, radius), iconSize/size (ícones, avatares), cores semânticas (`Semantic.color.light` / `Semantic.color.dark`), tipografia (fontFamily, fontSize, lineHeight).
-- **Figma:** usar `figma-token-map.json` para mapear token → variableId; seguir [design-tokens-figma.md](../../design-tokens-figma.md). Resolver variáveis por nome (ex.: `color/light/color/surface/default`) ou valores numéricos do mapa quando não der para vincular.
+## 1. Tokens do projeto (única fonte)
+
+- **Arquivos:** `tokens/primitives.json`, `tokens/semantic.json`, `tokens/composite.json`, `tokens/typography.json`. Usar **só** esses valores; não inventar nem usar fontes de fora do DS (ex.: nunca Inter).
+- **Uso:** dimension (padding, gap, radius), iconSize/size (ícones, avatares), cores semânticas (`Semantic.color.light` / `Semantic.color.dark`), tipografia (Roboto, fontWeight, fontSize, lineHeight).
+- **Figma:** usar `figma-token-map.json` para mapear token → variableId; seguir [figma-tokens-from-json.mdc](figma-desktop-brigde/.cursor/rules/figma-tokens-from-json.mdc) e [design-tokens-figma.md](../../design-tokens-figma.md). Resolver variáveis por nome (ex.: `color/light/color/surface/default`) ou valores numéricos do mapa quando não der para vincular.
 
 ## 2. Design system (rules)
 
 - **Regras:** [figma-desktop-brigde/.cursor/rules/project-overview.mdc](../../figma-desktop-brigde/.cursor/rules/project-overview.mdc).
 - **Obrigatório ao criar:**
-  - **Naming:** `Context/Level/Name` — prefixo Shop, Share ou Giftee; níveis Atom, Molecule, Organism, Template, Page; PascalCase; variáveis como `{PascalCase}`.
+  - **Naming:** `Context/Level/Name` — prefixo Shop, Share ou Giftee; níveis Atom, Molecule, Organism, Template, Page; PascalCase. Placeholders dinâmicos: `{PascalCase}` **apenas no nome da layer** (painel do Figma), não no texto visível do componente (ver project-overview 2.2 e figma-tokens-from-json).
   - **Auto Layout:** todos os frames/containers com Auto Layout, padding e gap definidos (nunca posicionamento manual).
   - **Hierarchy:** Root → Container → Stack → Block → Element.
   - **Dimensões:** usar `dimension-*` (ex.: dimension-4 = 16) para padding/gap; `size-*` para ícones/avatares; radius conforme composite (radius-200, radius-300, radius-400).
-  - **Tipografia:** Roboto (Regular, Bold, Medium, Semi Bold conforme necessário). Carregar fonte antes de criar texto (`figma.loadFontAsync`); se Roboto não estiver disponível no arquivo, usar Inter como fallback para o texto renderizar.
+  - **Tipografia:** somente **Roboto** (Regular, Medium, Semi Bold, Bold), conforme `tokens/primitives.json` e `tokens/typography.json`. **Nunca usar Inter** nem outra fonte. No Figma: carregar Roboto (`figma.loadFontAsync`), definir `text.fontName` e só depois `text.characters`; ver [figma-desktop-brigde/.cursor/rules/figma-tokens-from-json.mdc](figma-desktop-brigde/.cursor/rules/figma-tokens-from-json.mdc).
   - **Cores:** apenas tokens semânticos (surface/default, surface/raised, text/primary, text/secondary, text/tertiary, border/subtle, etc.). Nunca hex solto; no Figma, vincular a variáveis ou usar valores do mapa e depois `run_recursive_token_fix` na seleção se necessário.
 
 ## 3. Integridade de tokens (Figma)
@@ -30,5 +33,5 @@ Quando o usuário pedir para **criar** algo (componente, tela, card, organismo, 
 
 ## Resumo
 
-- **Criar** = sempre com tokens (`tokens/*.json` + `figma-token-map.json` no Figma) e design system (naming, Auto Layout, hierarchy, dimension/size, Roboto, cores semânticas).
+- **Criar** = usar o MCP Figma para criar no documento (ver figma-mcp-create-flow.mdc) e sempre com tokens (`tokens/*.json` + `figma-token-map.json` no Figma) e design system (naming, Auto Layout, hierarchy, dimension/size, Roboto, cores semânticas).
 - Não inventar cores, espaçamentos ou tipografia; usar apenas os valores definidos nos tokens e nas rules.

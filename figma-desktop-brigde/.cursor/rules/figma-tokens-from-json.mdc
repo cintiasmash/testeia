@@ -1,0 +1,103 @@
+---
+description: "Figma — Usar somente tokens dos JSON (primitives, semantic, typography, composite). Fonte só Roboto; nunca Inter nem hex. Lógica fixa ao criar texto: layer name {PascalCase}, conteúdo sem chaves, token com verificação de variável."
+alwaysApply: true
+---
+
+# Tokens no Figma — só do design system (JSON)
+
+Ao criar ou editar qualquer coisa no Figma via MCP, usar **exatamente** os tokens definidos nos JSON do projeto. Não inventar valores, não usar Inter, não usar hex.
+
+---
+
+## 1. Fontes de verdade (única referência)
+
+| Fonte de dados | Caminho | Uso no Figma |
+|----------------|--------|---------------|
+| **Cores (semânticas)** | `tokens/semantic.json` (Semantic.color.light / dark) | Variáveis no arquivo: usar **figma-token-map.json** para obter `variableId` (ex.: text/tertiary → 13853:22245). Nunca aplicar hex. |
+| **Cores (primitivas)** | `tokens/primitives.json` (color.*) | Só para referência; no Figma preferir semânticas (figma-token-map). |
+| **Tipografia** | `tokens/primitives.json` (Typography) e `tokens/typography.json` | Font family, weight, size, lineHeight, letterSpacing. |
+| **Espaçamento / dimensão** | `tokens/primitives.json` (dimension.*) e `tokens/composite.json` (spacing, border radius) | Padding, gap, radius: usar os **valores numéricos** (ex.: dimension-4 = 16, radius-200 = 8). No Figma pode haver variáveis em figma-token-map (dimensions, radius). |
+| **Mapa Figma** | `figma-token-map.json` (na raiz do projeto) | variableId para cores, dimensions e radius já criados no arquivo. Consultar antes de aplicar cor ou dimensão. |
+
+---
+
+## 2. Fonte: só Roboto (nunca Inter)
+
+- **Font family:** única permitida = **Roboto** (definida em `tokens/primitives.json` → `Typography.fontFamily.roboto` = "Roboto").
+- **Não usar** Inter nem qualquer outra fonte como fallback. O design system usa apenas Roboto.
+- **Estilos Figma** para Roboto (para `loadFontAsync` e `fontName`):
+  - regular (400) → `{ family: 'Roboto', style: 'Regular' }`
+  - medium (500) → `{ family: 'Roboto', style: 'Medium' }`
+  - semibold (600) → `{ family: 'Roboto', style: 'Semi Bold' }`
+  - bold (700) → `{ family: 'Roboto', style: 'Bold' }`
+- Valores de peso em `tokens/primitives.json`: Typography.fontWeight → regular 400, medium 500, semibold 600, bold 700.
+
+---
+
+## 3. Cores no Figma (só variáveis)
+
+- Aplicar cor em fills/strokes **só** via **variável** do arquivo.
+- Obter o `variableId` em **figma-token-map.json** (ex.: `colors["text/tertiary"].variableId` → "VariableID:13853:22245"; no código usar o id puro "13853:22245" para `getVariableByIdAsync`).
+- **Nunca** usar hex nem cor sólida. Se o token não existir no mapa, não inventar; criar a variável alinhada a `tokens/semantic.json` ou usar outro token já mapeado.
+
+---
+
+## 4. Espaçamento e radius (valores dos JSON)
+
+- **Padding / gap:** usar valores de `tokens/primitives.json` → dimension:
+  - dimension-1 = 4, dimension-2 = 8, dimension-3 = 12, dimension-4 = 16, dimension-6 = 24, dimension-8 = 32, etc.
+- **Radius:** usar valores de `tokens/composite.json` (border radius) / primitives:
+  - radius-200 = 8, radius-300 = 12, radius-400 = 16 (conforme dimension-2, dimension-3, dimension-4 no composite).
+- No código Figma pode usar esses números diretamente (ex.: frame.paddingLeft = 16, frame.cornerRadius = 8) ou, se existir, a variável de dimension/radius do figma-token-map.
+
+---
+
+## 5. Fluxo obrigatório ao criar texto no Figma
+
+Ao usar `figma_execute` (ou qualquer código que crie texto) no Figma, seguir **sempre** esta ordem:
+
+1. **Carregar a fonte Roboto** no estilo desejado (Regular, Medium, Semi Bold ou Bold):
+   - `await figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });` (ou Medium, 'Semi Bold', 'Bold').
+2. **Criar o nó de texto** e definir **fontName** antes de definir characters:
+   - `var text = figma.createText();`
+   - `text.fontName = { family: 'Roboto', style: 'Regular' };` (ou o estilo carregado).
+3. **Definir o conteúdo visível** (o que aparece no canvas) e o **nome da layer** (painel do Figma):
+   - Conteúdo visível: `text.characters = 'Text';` (ou o placeholder de conteúdo desejado). **Não** usar a string literal `'{Text}'` como conteúdo — as chaves são só para nome de layer.
+   - Nome da layer (painel): `text.name = '{Text}';` (convenção {PascalCase} para placeholders no **nome** do nó).
+4. **Aplicar token de cor** no fill (só variável, do figma-token-map). **Obrigatório** verificar se a variável existe; se não existir, não deixar fill padrão sem reportar:
+   - Obter variável: `var textVar = await figma.variables.getVariableByIdAsync('13853:22245');` (ex. text/tertiary). Se `textVar === null`, não aplicar e incluir no retorno que a variável não foi encontrada.
+   - Se existir: `fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', textVar); text.fills = fillsCopy;`
+   - Se houver `fillStyleId`, limpar: `text.fillStyleId = '';`
+5. **Definir fontSize** (e opcionalmente lineHeight) conforme `tokens/primitives.json` (Typography.fontSize): ex. xs = 12, sm = 14, md = 16.
+6. **Inserir no pai** (frame) e posicionar.
+
+Não usar Inter em nenhum passo. Se Roboto não carregar, reportar no resultado; não substituir por outra fonte.
+
+---
+
+## 6. Lógica de criação (regra fixa)
+
+Ao criar **qualquer** texto ou componente com texto no Figma via `figma_execute`, seguir **esta lógica** na ordem indicada. O assistente deve aplicar essa regra sempre.
+
+| Passo | Ação | Regra |
+|-------|------|--------|
+| 1 | Carregar fonte | `await figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });` (ou Medium, 'Semi Bold', 'Bold'). Só Roboto; nunca Inter. |
+| 2 | Criar texto e fontName | `text = figma.createText(); text.fontName = { family: 'Roboto', style: 'Regular' };` (antes de characters). |
+| 3 | Conteúdo visível | `text.characters = 'Text';` (ou o placeholder de conteúdo). **Nunca** `'{Text}'` no canvas — chaves só no nome da layer. |
+| 4 | Nome da layer | `text.name = '{Text}';` (ou {PascalCase} correspondente). Convenção {PascalCase} **apenas** no nome do nó (painel do Figma). |
+| 5 | Token de cor no fill | Consultar `figma-token-map.json` para o variableId (ex.: text/tertiary → id puro "13853:22245"). `textVar = await figma.variables.getVariableByIdAsync(id)`. Se `textVar === null`, **não** aplicar fill e **reportar** no retorno (ex.: `variableNotFound: true`). Se existir: `setBoundVariableForPaint` no fill, limpar `fillStyleId` se houver. |
+| 6 | fontSize (e lineHeight) | Valores de `tokens/primitives.json` (Typography.fontSize): xs=12, sm=14, md=16, etc. |
+| 7 | Frame / layout | Padding, gap e radius com valores dos tokens (dimension-4=16, dimension-2=8, radius-200=8). Frame com Auto Layout quando for container. |
+| 8 | Inserir e opcionalmente componente | Append texto ao frame, frame à página; posição definida. Se for componente: `figma.createComponent(frame)` e nome Context/Level/Name (ex.: Share/Atom/Badge). Selecionar e `scrollAndZoomIntoView`. |
+
+**Resumo da lógica:** fonte Roboto → fontName → characters (sem chaves) + name da layer (com {PascalCase}) → obter variável do figma-token-map → se variável existir aplicar no fill, senão reportar → fontSize/lineHeight dos primitives → frame com tokens de espaçamento → append → criar componente se aplicável.
+
+---
+
+## 7. Resumo
+
+- **Cores:** só variáveis; variableId em **figma-token-map.json**; nunca hex.
+- **Tipografia:** só **Roboto** (Regular, Medium, Semi Bold, Bold); valores em **tokens/primitives.json** e **tokens/typography.json**; **nunca Inter**.
+- **Espaçamento e radius:** valores de **tokens/primitives.json** e **tokens/composite.json** (dimension-*, radius-*).
+- **Ordem ao criar texto:** loadFontAsync(Roboto) → fontName → characters (conteúdo visível, sem chaves) e name (nome da layer com {PascalCase}) → aplicar variável de cor no fill (verificar se variável existe) → fontSize (e lineHeight se aplicar) → append ao pai.
+- **{PascalCase}:** só no **nome da layer** (painel Figma); não usar `'{Text}'` como texto visível no canvas.

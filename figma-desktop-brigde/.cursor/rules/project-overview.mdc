@@ -48,6 +48,8 @@ Correct:
 
 ## 2.2 Variables / Placeholders
 
+**Onde se aplica:** a convenção {PascalCase} vale para a **nomeação de layers** no painel do Figma (nome do nó, `node.name`). **Não** colocar as chaves como texto visível dentro do componente: o conteúdo exibido no canvas (ex.: `text.characters`) não deve ser a string literal `{Text}`; use o nome da layer com {PascalCase} no painel e o conteúdo visível conforme o design (ex.: "Text").
+
 All dynamic variables must follow:
 
 {PascalCase}

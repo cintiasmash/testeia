@@ -1,0 +1,71 @@
+{
+  "components": [
+    {
+      "componentName": "Share/Atom/ActionButton",
+      "description": null,
+      "variants": [
+        { "name": "Style", "values": ["Contained", "Outlined"] },
+        { "name": "Size", "values": ["L", "M", "S", "XS"] },
+        { "name": "State", "values": ["Normal", "Hover", "Active", "Focus", "Pressed", "Disabled"] }
+      ],
+      "visualProperties": {},
+      "typography": [],
+      "colorTokens": {
+        "usesVariables": null,
+        "fillsUseVariables": null
+      },
+      "structure": {
+        "autoLayout": true,
+        "type": "COMPONENT_SET"
+      },
+      "usesVariables": null
+    },
+    {
+      "componentName": "Share/Molecule/AccordionRow",
+      "description": null,
+      "variants": [
+        { "name": "State", "values": ["Hide", "Open"] }
+      ],
+      "visualProperties": {
+        "padding": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+        "spacing": { "itemSpacing": 20 },
+        "radius": { "cornerRadius": 5 }
+      },
+      "typography": [
+        {
+          "role": "Title",
+          "fontFamily": "Roboto",
+          "fontStyle": "Bold",
+          "fontSize": 14,
+          "lineHeight": { "unit": "PIXELS", "value": 24 }
+        }
+      ],
+      "colorTokens": {
+        "usesVariables": false,
+        "fillsUseVariables": false
+      },
+      "structure": {
+        "autoLayout": true,
+        "direction": "VERTICAL",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "gap": 20,
+        "variantLayouts": [
+          {
+            "variantName": "State=Hide",
+            "layoutMode": "HORIZONTAL",
+            "padding": { "top": 8, "right": 0, "bottom": 8, "left": 0 },
+            "itemSpacing": 16
+          },
+          {
+            "variantName": "State=Open",
+            "layoutMode": "VERTICAL",
+            "padding": { "top": 8, "right": 0, "bottom": 8, "left": 0 },
+            "itemSpacing": 8
+          }
+        ]
+      },
+      "usesVariables": false
+    }
+  ]
+}
