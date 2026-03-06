@@ -1,9 +1,60 @@
 ---
-description: "Figma — Evitar e corrigir tokens de cor quebrados (unlinked/broken) em componentes e variantes. Escopo completo e árvore inteira. Correção recursiva em todo o subtree."
+description: "Figma — Evitar e corrigir tokens de cor quebrados. Regras: só tokens dos JSON; fill = qualquer cor na UI; prioridade semântico → primitivo; nunca hex; sempre substituir hex/cor solta por token correspondente."
 alwaysApply: true
 ---
 
 # Tokens de cor — Nunca deixar hex em componentes
+
+## Color token usage rules
+
+### Source of truth
+
+All colors must come from the design token JSON already provided in the project.
+
+### Rules
+
+- Never create new color tokens.
+- Never use hex values.
+- Only use tokens that exist in the provided JSON files.
+
+### Fill behavior
+
+In this project, **fill represents any visual color applied in the UI**.
+
+This includes color used in:
+
+- backgrounds
+- containers
+- buttons
+- text
+- icons
+- borders
+- badges
+- alerts
+- any UI component
+
+Whenever a change involves **fill or any color property**, the system must:
+
+1. Look for the corresponding token inside the **semantic tokens** first.
+2. If a semantic token exists, use it.
+3. If no semantic token exists, fallback to the **primitive tokens**.
+4. Apply the token reference instead of a raw color value.
+
+### Priority
+
+1. semantic tokens
+2. primitive/base tokens
+3. never use raw color values
+
+### Important
+
+Do not invent token names. Only select tokens that already exist in the provided JSON structure.
+
+### Replace hex / solid color
+
+Whenever **hex or a solid color** is found (in fill, stroke, text, or any color property), **replace it** with a **token that corresponds to that color** from the project JSON (semantic first, then primitive). Do not leave hex or solid color in place: map the current value to the matching or closest token (by role or value) and apply the **token reference** (variable binding in Figma) instead.
+
+---
 
 ## Pedido "corrige os tokens nesse componente"
 
