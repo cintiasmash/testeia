@@ -398,19 +398,6 @@
       <p class="help-text" style="margin-top: 8px;">A ponte usa WebSocket nas portas 9229, 9230, 9223–9232. No Figma Desktop, se o arquivo tem link (URL), já está salvo. Se não conectar mesmo com arquivo salvo: confira se o MCP está rodando no Cursor e se o plugin foi importado de <strong>figma-desktop-brigde</strong> (Plugins → Development → Import plugin from manifest).</p>
     </div>
 
-    <div class="section">
-      <div class="section-title">Aprovação</div>
-      <div class="approval-row toggle-wrap">
-        <span>Exigir aprovação antes de aplicar</span>
-        <div class="toggle" id="toggle-approval" title="Quando ativo, ações do MCP ficam na fila até você clicar em Aplicar (aprovar)"></div>
-      </div>
-      <div id="pending-section" class="pending-section">
-        <p class="help-text" id="pending-empty-msg">Com aprovação ligada, as ações do MCP aparecem aqui. Clique em &quot;Aplicar&quot; para executar.</p>
-        <div class="pending-list" id="pending-list"></div>
-        <button type="button" id="btn-approve-all" class="btn btn-primary btn-apply" style="margin-top: 8px;">Aplicar (aprovar)</button>
-      </div>
-    </div>
-
     <div class="section" id="history-on-comandos-section">
       <div class="section-title">Histórico (últimas ações)</div>
       <p class="help-text">Detalhes das mudanças e botão <strong>Desfazer</strong> para reverter a ação. Clique em "Ver detalhes" para ver o que foi alterado em cada item.</p>
@@ -441,6 +428,7 @@
     window.__figmaComponentRequests = new Map();
     window.__figmaPendingRequests = new Map();
 
+    // Aprovação só no Cursor (agente pergunta Sim/Não aqui). Plugin sempre executa ao receber do MCP.
     window.__approvalRequired = false;
     window.__pendingActions = [];
     window.__actionHistory = [];
@@ -842,19 +830,6 @@
         });
       }
 
-      var toggle = document.getElementById('toggle-approval');
-      if (toggle) {
-        toggle.addEventListener('click', function() {
-          window.__approvalRequired = !window.__approvalRequired;
-          toggle.classList.toggle('on', window.__approvalRequired);
-          try { localStorage.setItem('figma-bridge-approval', window.__approvalRequired ? '1' : '0'); } catch (e) {}
-          renderPendingActions();
-        });
-      }
-
-      document.getElementById('btn-approve-all').addEventListener('click', function() {
-        while (window.__pendingActions.length > 0) window.__processNextPending();
-      });
       initTabs();
       renderHistoryPreview();
     })();
@@ -1409,13 +1384,6 @@
       }
     };
 
-    // Restore approval toggle state from localStorage
-    var savedApproval = false;
-    try { savedApproval = localStorage.getItem('figma-bridge-approval') === '1'; } catch (e) {}
-    window.__approvalRequired = savedApproval;
-    var toggleEl = document.getElementById('toggle-approval');
-    if (toggleEl) toggleEl.classList.toggle('on', savedApproval);
-    if (typeof renderPendingActions === 'function') renderPendingActions();
     // Mostrar dica de conexão ao abrir o plugin (estado desconectado)
     if (typeof setConnectionState === 'function') setConnectionState('disconnected', null);
   </script>

@@ -1,0 +1,238 @@
+---
+description: "Auditoria de conformidade com o Design System. Ativar apenas quando o usuário pedir explicitamente auditoria/revisão/verificação de DS ou tokens."
+alwaysApply: false
+---
+
+# Rule: Design System Compliance Checker (Projeto)
+
+## Trigger
+
+Esta rule é ativada **somente** quando o usuário solicitar explicitamente auditoria ou revisão de Design System, por exemplo:
+
+- "auditar design system em [elemento]"
+- "revisar consistência do DS em [elemento]"
+- "verificar tokens em [elemento]"
+- "checar design system [elemento]"
+- "validar DS [elemento]"
+- "análise de conformidade [elemento]"
+
+**NÃO ativa em:** "revisar este design", "analisar layout", "melhorar componente" — a menos que o usuário mencione "design system", "DS", "tokens" ou "conformidade".
+
+---
+
+## Design System de Referência (este projeto)
+
+### Tokens oficiais
+
+- **Cores e semântica:** `tokens/semantic.json` (Semantic.color.light / dark), `tokens/primitives.json` (color.*)
+- **Espaçamento e dimensão:** `tokens/primitives.json` (dimension.dimension-1 a dimension-24), `tokens/composite.json` (spacing, border radius)
+- **Tipografia:** `tokens/typography.json`, `tokens/primitives.json` (Typography)
+- **Mapa no Figma:** `figma-token-map.json` (raiz do projeto) — variableId para cores (surface/default, text/primary, etc.), dimensions (dimension-1 a dimension-8), radius (radius-200, radius-300, radius-400)
+
+Nunca inventar tokens; usar apenas os definidos nesses arquivos.
+
+### Naming obrigatório (project-overview.mdc)
+
+Formato: **Context/Level/Name**
+
+- **Contexto:** Shop | Share | Giftee (obrigatório)
+- **Níveis:** Atom | Molecule | Organism | Template | Page
+- **Nome:** PascalCase, por propósito (nunca por estilo visual)
+
+Exemplos corretos: `Shop/Page/PageInformation`, `Share/Molecule/ButtonPrimary`, `Giftee/Organism/HeaderNavigation`
+
+Exemplos errados: `Button Primary` (sem categoria), `atoms/button/primary` (formato antigo), `Shop/Atom/PurpleButton` (estilo no nome)
+
+Placeholders em layers: `{PascalCase}` apenas no **nome da layer** (painel Figma), não como texto visível no canvas.
+
+### Tipografia oficial
+
+- **Fonte:** Roboto (Regular, Medium, Semi Bold, Bold). Valores em `tokens/primitives.json` e `tokens/typography.json`.
+- **Não permitido:** Inter, Arial, Helvetica ou qualquer outra fonte.
+
+### Estrutura e hierarchy (project-overview)
+
+- Root → Container → Stack → Block → Element
+- Auto Layout obrigatório em elementos estruturais; padding e gap com tokens (dimension-*).
+- Cores apenas via variáveis (figma-token-map / Semantics); nunca hex.
+
+---
+
+## Mapeamento: ferramentas MCP para cada verificação
+
+Usar as ferramentas reais expostas pelo MCP / Figma Desktop Bridge. O agente chama as tools por nome; não existe `figma.getNodeStyles()` no fluxo Cursor.
+
+### 1. Tokens de cor ausentes / hard-coded / quebrados
+
+| Verificação | Ferramenta MCP |
+|-------------|----------------|
+| Nós com fill sem variável (cores soltas) | `get_nodes_with_unlinked_fills` ou `figma_get_nodes_with_unlinked_fills` — parâmetro opcional: `nodeId` (se omitido, usa página atual) |
+| Bindings quebrados (variável inexistente) | Comando enviado ao plugin: `SCAN_BROKEN_BINDINGS` (nodeId opcional). Verificar se o MCP expõe como `figma_scan_broken_bindings` ou equivalente. |
+| Correção recursiva (quebrados + hardcoded + overrides) | `run_recursive_token_fix` ou `figma_run_recursive_token_fix` — parâmetro opcional: `nodeId` (se omitido, usa seleção ou página). Preferir para **corrigir** após auditoria. |
+
+Fonte de verdade para tokens: `tokens/primitives.json`, `tokens/semantic.json`, `figma-token-map.json`.
+
+### 2. Seleção, documento e escopo
+
+| Verificação | Ferramenta MCP |
+|-------------|----------------|
+| Página atual / documento | `get_document_info` ou equivalente (currentPage.id para escopo) |
+| Seleção atual | `figma_get_selection` |
+| Status da conexão | `figma_get_status` |
+
+### 3. Componentes
+
+| Verificação | Ferramenta MCP |
+|-------------|----------------|
+| Buscar componentes | `figma_search_components` |
+| Dados de um componente | `figma_get_component`, `figma_get_component_details` |
+
+Para "componente de outro documento": usar resultado do plugin/MCP (ex.: `get_component` ou `get_component_details`) e verificar se `fileKey` ou origem é o arquivo do Design System esperado.
+
+### 4. Execução de código no Figma (checagens customizadas)
+
+Para lógica que o MCP não expõe como tool (ex.: percorrer árvore, checar fontName em todos os textos):
+
+- **Ferramenta:** `figma_execute` (ou `EXECUTE_CODE`) — parâmetros: `code`, `timeout`.
+- O código roda na Plugin API do Figma (ex.: `figma.currentPage.findAll()`, `node.fontName`, `node.fills`). Seguir [figma-tokens-from-json.mdc](figma-tokens-from-json.mdc) e [figma-token-integrity.mdc](figma-token-integrity.mdc).
+
+Usar para: listar textos com fonte ≠ Roboto, listar nós com padding/gap fora dos valores de `tokens/primitives.json` (dimension-*), etc.
+
+### 5. Variáveis no arquivo
+
+- `figma_get_variables`, `figma_get_token_values` — para cruzar com `figma-token-map.json` e tokens dos JSON.
+
+---
+
+## Arquivo de exceções (opcional)
+
+Se existir `.ds-exceptions.json` na raiz do projeto, carregar e respeitar ao montar o relatório (ex.: ignorar nós ou categorias listadas, com motivo e data de expiração).
+
+Exemplo de estrutura:
+
+```json
+{
+  "nodes": {
+    "node-id-123": {
+      "reason": "Componente legado em migração",
+      "expires": "2026-06-01",
+      "exceptions": ["external-component", "naming-violation"]
+    }
+  }
+}
+```
+
+---
+
+## Formato de saída
+
+### Nível 1: Resumo (sempre)
+
+Apresentar em texto no chat:
+
+```
+🔍 AUDITORIA DE DESIGN SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Escopo: [Nome do elemento]
+📅 Data: [DD/MM/AAAA]
+📊 Conformidade: [X]%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  [N] PROBLEMAS ENCONTRADOS
+
+🚨 Críticos: [n]
+   • [resumo]
+
+⚠️  Importantes: [n]
+   • [resumo]
+
+📌 Recomendados: [n]
+   • [resumo]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 AÇÕES PRIORITÁRIAS
+1. [ação 1]
+2. [ação 2]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Digite "mostrar detalhes" para ver lista completa.
+Digite "corrigir críticos" para aplicar correções (com confirmação no Cursor).
+```
+
+### Nível 2: Detalhamento (sob demanda)
+
+Quando o usuário pedir "mostrar detalhes", "detalhar" ou "ver tudo", listar cada problema no formato:
+
+- **Tipo:** [Categoria]
+- **Localização:** [Caminho no Figma]
+- **Problema:** [Descrição]
+- **Esperado:** [Conforme DS]
+- **Ação:** [Como corrigir]
+- **Prioridade:** Crítico | Importante | Recomendado
+
+Para tokens: indicar token esperado (ex.: `surface/default`, `dimension-4`, `radius-200`) com base em `figma-token-map.json` e `tokens/*.json`.
+
+### Comandos pós-auditoria
+
+- "mostrar detalhes" → exibir nível 2
+- "filtrar críticos" → apenas problemas críticos
+- "filtrar tokens" → apenas problemas de tokens
+- "exportar json" → exportar relatório em JSON
+- "corrigir críticos" → propor auto-fix (ex.: `run_recursive_token_fix`) e **pedir confirmação no Cursor (Sim/Não)** antes de executar, conforme regra de aprovação do projeto
+
+---
+
+## Priorização
+
+### Crítico (bloqueia conformidade)
+
+- Fontes não autorizadas (não-Roboto)
+- Componentes de arquivos externos não autorizados
+- Cores sem variável (hex hard-coded) em componentes
+
+### Importante
+
+- Tokens de cor ausentes (preencher com variável do figma-token-map)
+- Espaçamentos (padding, gap) fora dos dimension-* do projeto
+- Naming fora do padrão Context/Level/Name em componentes
+- Border radius sem token (radius-200, radius-300, radius-400)
+
+### Recomendado
+
+- Line-height ou tipografia não tokenizada
+- Naming em frames (não-componentes)
+- Sombras ou opacidades hard-coded
+
+---
+
+## Fluxo de execução
+
+1. **Escopo:** Identificar elemento (seleção, nodeId ou página). Usar `figma_get_selection` ou `get_document_info` conforme disponível.
+2. **Tokens:** Chamar `get_nodes_with_unlinked_fills` (e, se existir, scan de broken bindings) para listar nós com cor/estilo fora do DS. Cruzar com `figma-token-map.json` e `tokens/semantic.json`.
+3. **Naming e tipografia:** Se necessário, usar `figma_execute` para percorrer nós e checar `node.name` (Context/Level/Name) e `node.fontName` (apenas Roboto).
+4. **Componentes externos:** Usar `figma_get_component` / `figma_get_component_details` e comparar origem com o arquivo do DS (fileKey do projeto).
+5. **Consolidar:** Agrupar por prioridade (Crítico / Importante / Recomendado), aplicar exceções de `.ds-exceptions.json` se existir.
+6. **Saída:** Mostrar resumo (nível 1). Detalhamento (nível 2) só se o usuário pedir.
+
+---
+
+## Exemplos de uso
+
+- "auditar design system em Header"
+- "revisar consistência do DS na página Home"
+- "verificar tokens no componente Card"
+- "checar design system no frame selecionado"
+
+---
+
+## Referências no projeto
+
+- [project-overview.mdc](project-overview.mdc) — naming, hierarchy, Auto Layout, tokens de dimensão e cor
+- [figma-tokens-from-json.mdc](figma-tokens-from-json.mdc) — uso de tokens no Figma, Roboto, figma-token-map
+- [figma-token-integrity.mdc](figma-token-integrity.mdc) — nunca hex; correção com `run_recursive_token_fix`
+- [figma-mcp-create-flow.mdc](figma-mcp-create-flow.mdc) — fluxo de criação e ferramentas MCP
+- [design-system-figma.mdc](design-system-figma.mdc) — design-system/figma-components.json quando existir

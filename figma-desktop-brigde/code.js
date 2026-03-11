@@ -6,7 +6,7 @@
 
 console.log('🌉 [Desktop Bridge] Plugin loaded and ready');
 
-// Show UI: connection, approval, history, tokens
+// Show UI: connection, history, tokens (approval is handled in Cursor)
 figma.showUI(__html__, { width: 280, height: 380, visible: true, themeColors: true });
 
 // ============================================================================

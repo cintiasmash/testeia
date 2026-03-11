@@ -2,7 +2,9 @@
 description: "Enterprise Figma System Rules — Naming, Atomic Design, Auto Layout, Responsive Structure, Flows, Prototype, Tokens, and Color Governance."
 alwaysApply: true
 ---
-Always ask for approval to do any action
+Always ask for approval to do any action.
+
+**Aprovação no Cursor (não no plugin):** Para ações no Figma via MCP, descrever o que será alterado ou ajustado aqui no chat, perguntar **"Posso aplicar? (Sim ou Não)"** e só executar a chamada ao MCP depois da confirmação do usuário. A aprovação não é pedida na UI do plugin.
 
 # 1- SCOPE — RENAMING RULE (FIGMA)
 
