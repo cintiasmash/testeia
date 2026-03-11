@@ -457,7 +457,8 @@
       'REPLACE_TYPO_TOKEN': true, 'REPAIR_TOKENS_BY_MAP': true, 'APPLY_TEXT_STYLE': true,
       'SCAN_BROKEN_BINDINGS': false, 'REPAIR_BROKEN_BINDINGS': true,
       'REPAIR_AND_RELINK_BY_TOKEN_MAP': true,
-      'RUN_RECURSIVE_TOKEN_FIX': true
+      'RUN_RECURSIVE_TOKEN_FIX': true,
+      'FIX_BROKEN_TOKENS': true, 'figma_fix_broken_tokens': true, 'fix_broken_tokens': true
     };
 
     function getStatusDot() { return document.getElementById('status-dot'); }
@@ -510,6 +511,11 @@
       if (method === 'SCAN_BROKEN_BINDINGS' && r.broken) {
         var c = (r.broken || []).length;
         return c > 0 ? 'Vínculos quebrados: ' + c + ' encontrados' : 'Vínculos quebrados: nenhum';
+      }
+      if ((method === 'FIX_BROKEN_TOKENS' || method === 'figma_fix_broken_tokens' || method === 'fix_broken_tokens') && r.report) {
+        var rep = r.report;
+        if (rep.skipped > 0) return 'Fix broken tokens (dry run): ' + rep.scanned + ' escaneados, ' + rep.broken + ' quebrados';
+        return 'Fix broken tokens: ' + rep.scanned + ' escaneados, ' + rep.fixed + ' corrigidos' + (rep.failed && rep.failed.length ? ', ' + rep.failed.length + ' falhas' : '');
       }
       if (method === 'REPAIR_BROKEN_BINDINGS' && r.repaired) {
         var c = (r.repaired || []).length;
@@ -996,6 +1002,7 @@
         'REPAIR_BROKEN_BINDINGS': function(params) { return window.sendPluginCommand('REPAIR_BROKEN_BINDINGS', params || {}); },
         'REPAIR_AND_RELINK_BY_TOKEN_MAP': function(params) { return window.sendPluginCommand('REPAIR_AND_RELINK_BY_TOKEN_MAP', { semanticMap: params.semanticMap || {}, primitiveMap: params.primitiveMap || {}, scope: params.scope || { type: 'document' } }, 60000); },
         'RUN_RECURSIVE_TOKEN_FIX': function(params) { return window.sendPluginCommand('RUN_RECURSIVE_TOKEN_FIX', { nodeId: params && params.nodeId }, 60000); },
+        'FIX_BROKEN_TOKENS': function(params) { return window.sendPluginCommand('FIX_BROKEN_TOKENS', { scope: params && params.scope, nodeId: params && params.nodeId, dryRun: params && params.dryRun === true }, 60000); },
         'REPLACE_COLOR_TOKEN': function(params) { return window.sendPluginCommand('REPLACE_COLOR_TOKEN', params || {}); },
         'REPLACE_TYPO_TOKEN': function(params) { return window.sendPluginCommand('REPLACE_TYPO_TOKEN', params || {}); },
         'REPAIR_TOKENS_BY_MAP': function(params) { return window.sendPluginCommand('REPAIR_TOKENS_BY_MAP', params || {}); },
@@ -1092,6 +1099,7 @@
             else if (method === 'figma_get_nodes_with_unlinked_fills') methodForMap = 'GET_NODES_WITH_UNLINKED_FILLS';
             else if (method === 'figma_replace_color_token') methodForMap = 'REPLACE_COLOR_TOKEN';
             else if (method === 'figma_run_recursive_token_fix' || method === 'run_recursive_token_fix') methodForMap = 'RUN_RECURSIVE_TOKEN_FIX';
+            else if (method === 'figma_fix_broken_tokens' || method === 'fix_broken_tokens') methodForMap = 'FIX_BROKEN_TOKENS';
 
             var handler = methodMap[methodForMap] || methodMap[method];
             if (!handler) {
@@ -1186,6 +1194,7 @@
         else if (item.method === 'figma_get_nodes_with_unlinked_fills') methodForMap = 'GET_NODES_WITH_UNLINKED_FILLS';
         else if (item.method === 'figma_replace_color_token') methodForMap = 'REPLACE_COLOR_TOKEN';
         else if (item.method === 'figma_run_recursive_token_fix' || item.method === 'run_recursive_token_fix') methodForMap = 'RUN_RECURSIVE_TOKEN_FIX';
+        else if (item.method === 'figma_fix_broken_tokens' || item.method === 'fix_broken_tokens') methodForMap = 'FIX_BROKEN_TOKENS';
         var handler = methodMap[methodForMap] || methodMap[item.method];
         if (!handler) {
           window.__wsSendError(item.id, new Error('Unknown method'));
@@ -1363,6 +1372,17 @@
         case 'REPAIR_AND_RELINK_BY_TOKEN_MAP_RESULT': {
           var rRelink = window.__figmaPendingRequests.get(msg.requestId);
           if (rRelink) { if (rRelink.timeoutId) clearTimeout(rRelink.timeoutId); rRelink.resolve(msg.success !== false ? { success: true, linked: msg.linked || [], noMatch: msg.noMatch || [], brokenFound: msg.brokenFound || 0, unlinkedFound: msg.unlinkedFound || 0, styleOverrideFound: msg.styleOverrideFound || 0, totalFixed: msg.totalFixed != null ? msg.totalFixed : (msg.linked || []).length, tokenPathsCount: msg.tokenPathsCount || 0, variablesByPathCount: msg.variablesByPathCount || 0 } : { success: false, error: msg.error || '', linked: [], noMatch: [] }); window.__figmaPendingRequests.delete(msg.requestId); }
+          break;
+        }
+        case 'FIX_BROKEN_TOKENS_RESULT': {
+          var rFix = window.__figmaPendingRequests.get(msg.requestId);
+          if (rFix) {
+            if (rFix.timeoutId) clearTimeout(rFix.timeoutId);
+            rFix.resolve(msg.success !== false
+              ? { success: true, report: msg.report || { scanned: 0, broken: 0, fixed: 0, skipped: 0, failed: [], details: [] } }
+              : { success: false, error: msg.error || '', report: msg.report || { scanned: 0, broken: 0, fixed: 0, skipped: 0, failed: [], details: [] } });
+            window.__figmaPendingRequests.delete(msg.requestId);
+          }
           break;
         }
         case 'REPLACE_COLOR_TOKEN_RESULT': handleResult('REPLACE_COLOR_TOKEN', null); break;

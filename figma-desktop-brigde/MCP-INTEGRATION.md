@@ -20,11 +20,15 @@ O plugin **Figma Desktop Bridge** expõe comandos que foram integrados ao servid
 
 5. **figma_repair_broken_bindings** – Substitui vínculos quebrados por cor sólida (padrão cinza #6B7280) para remover o (?). Parâmetros opcionais: `nodeId`, `fallbackHex`.
 
+### Tokens quebrados (detectar e corrigir por escopo)
+
+6. **figma_fix_broken_tokens** (fix_broken_tokens) – Detecta e corrige tokens quebrados (fills/strokes que apontam para variável inexistente). Roda no plugin (Desktop Bridge). Parâmetros: `scope` (page | selection | node | global), `nodeId` (obrigatório se scope = node), `dryRun` (true = só reportar). Resolve substituto por semântico → primitivo → role (text/stroke); nunca aplica hex. Retorna `report`: scanned, broken, fixed, skipped, failed, details. Integra com run_recursive_token_fix e figma_scan_broken_bindings.
+
 ### Revincular por mapa de tokens (semântico + primitive)
 
-6. **RUN_RECURSIVE_TOKEN_FIX** – Correção recursiva **sem colar JSON**: usa mapa padrão (FCFCFD→background, FFFFFF→icon, 1C2024→text.primary, etc.). Parâmetro opcional: `nodeId`. Se omitido, usa a **seleção atual** ou a página. Corrige no subtree: tokens quebrados, cores hardcoded e overrides de estilo (fillStyleId/strokeStyleId). **Recomendado para “corrigir tokens na seleção”.**
+7. **RUN_RECURSIVE_TOKEN_FIX** – Correção recursiva **sem colar JSON**: usa mapa padrão (FCFCFD→background, FFFFFF→icon, 1C2024→text.primary, etc.). Parâmetro opcional: `nodeId`. Se omitido, usa a **seleção atual** ou a página. Corrige no subtree: tokens quebrados, cores hardcoded e overrides de estilo (fillStyleId/strokeStyleId). **Recomendado para “corrigir tokens na seleção”.**
 
-7. **REPAIR_AND_RELINK_BY_TOKEN_MAP** – Correção **recursiva** no escopo: re-vincula fills/strokes (quebrados ou hardcoded) usando mapa de tokens. Percorre **todo o subtree** (texto, ícones, bordas, estados, variantes). Para cada cor (hex), o mapa indica o path do token; o plugin escolhe token por role (text → text.*, stroke → border.*). Também corrige (c) cores hardcoded (hex sem variável). Ao aplicar variável, remove fillStyleId/strokeStyleId para o token prevalecer. Parâmetros: `semanticMap`, `primitiveMap`, `scope`: `{ type: 'document'|'page'|'node', nodeId?: string, pageId?: string }`. Resultado inclui `linked`, `noMatch`, `brokenFound`, `unlinkedFound`, `totalFixed`.
+8. **REPAIR_AND_RELINK_BY_TOKEN_MAP** – Correção **recursiva** no escopo: re-vincula fills/strokes (quebrados ou hardcoded) usando mapa de tokens. Percorre **todo o subtree** (texto, ícones, bordas, estados, variantes). Para cada cor (hex), o mapa indica o path do token; o plugin escolhe token por role (text → text.*, stroke → border.*). Também corrige (c) cores hardcoded (hex sem variável). Ao aplicar variável, remove fillStyleId/strokeStyleId para o token prevalecer. Parâmetros: `semanticMap`, `primitiveMap`, `scope`: `{ type: 'document'|'page'|'node', nodeId?: string, pageId?: string }`. Resultado inclui `linked`, `noMatch`, `brokenFound`, `unlinkedFound`, `totalFixed`.
 
 As mudanças foram feitas no pacote **figma-console-mcp** (usado pelo Cursor via npx):
 

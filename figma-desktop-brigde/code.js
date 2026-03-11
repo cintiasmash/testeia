@@ -3188,6 +3188,271 @@ figma.ui.onmessage = async (msg) => {
     }
   }
 
+  // ============================================================================
+  // FIX_BROKEN_TOKENS - Detect and fix variable tokens that reference deleted variables
+  // Scope: page | selection | node | global. dryRun: only report, do not apply.
+  // Resolves replacement by semantic → primitive → fuzzy (same priority as token integrity).
+  // ============================================================================
+  else if (msg.type === 'FIX_BROKEN_TOKENS') {
+    try {
+      var scope = (msg.scope && String(msg.scope).toLowerCase()) || 'page';
+      var nodeId = msg.nodeId && String(msg.nodeId).trim() ? msg.nodeId : null;
+      var dryRun = msg.dryRun === true;
+
+      var roots = [];
+      if (scope === 'node' && nodeId) {
+        var one = await figma.getNodeByIdAsync(nodeId);
+        if (!one) throw new Error('Node not found: ' + nodeId);
+        roots.push(one);
+      } else if (scope === 'selection') {
+        var sel = figma.currentPage.selection;
+        if (sel && sel.length > 0) {
+          for (var si = 0; si < sel.length; si++) roots.push(sel[si]);
+        } else if (figma.currentPage) {
+          roots.push(figma.currentPage);
+        }
+        if (roots.length === 0) throw new Error('No selection and no current page.');
+      } else if (scope === 'page') {
+        if (figma.currentPage) roots.push(figma.currentPage);
+        if (roots.length === 0) throw new Error('No current page.');
+      } else if (scope === 'global') {
+        var pages = figma.root.children;
+        for (var pi = 0; pi < pages.length; pi++) roots.push(pages[pi]);
+        if (roots.length === 0) throw new Error('No pages in document.');
+      } else {
+        throw new Error('Invalid scope. Use: page, selection, node, or global.');
+      }
+
+      var variables = await figma.variables.getLocalVariablesAsync();
+      var collections = await figma.variables.getLocalVariableCollectionsAsync();
+      var activeVariableIds = {};
+      for (var vi = 0; vi < variables.length; vi++) activeVariableIds[variables[vi].id] = true;
+
+      function traverseAll(node) {
+        var list = [node];
+        if (node.children && node.children.length > 0) {
+          for (var c = 0; c < node.children.length; c++) {
+            list = list.concat(traverseAll(node.children[c]));
+          }
+        }
+        return list;
+      }
+
+      var allNodes = [];
+      for (var ri = 0; ri < roots.length; ri++) allNodes = allNodes.concat(traverseAll(roots[ri]));
+      var reportScanned = allNodes.length;
+
+      function normalizeHex(hexStr) {
+        if (!hexStr || typeof hexStr !== 'string') return '';
+        var h = hexStr.replace(/^#/, '').trim().toUpperCase();
+        if (h.length === 8) h = h.substring(0, 6);
+        return h.length === 6 ? h : '';
+      }
+      function rgbToHex(r, g, b) {
+        return [r, g, b].map(function(x) {
+          var n = Math.round(Math.max(0, Math.min(1, x)) * 255);
+          var h = n.toString(16);
+          return h.length === 1 ? '0' + h : h;
+        }).join('').toUpperCase();
+      }
+
+      var brokenList = [];
+      for (var ni = 0; ni < allNodes.length; ni++) {
+        var node = allNodes[ni];
+        if ('fills' in node && node.fills && node.fills.length > 0) {
+          var f = node.fills[0];
+          var alias = f.boundVariables && f.boundVariables.color;
+          if (alias && alias.id && !activeVariableIds[alias.id]) {
+            var r = (f.type === 'SOLID' && f.color) ? f.color.r : 0;
+            var g = (f.type === 'SOLID' && f.color) ? f.color.g : 0;
+            var b = (f.type === 'SOLID' && f.color) ? f.color.b : 0;
+            brokenList.push({
+              nodeId: node.id,
+              nodeName: node.name,
+              variableId: alias.id,
+              property: 'fill',
+              strokeIndex: null,
+              resolvedHex: rgbToHex(r, g, b),
+              role: node.type === 'TEXT' ? 'text' : 'fill'
+            });
+          }
+        }
+        if ('strokes' in node && node.strokes && node.strokes.length > 0) {
+          for (var s = 0; s < node.strokes.length; s++) {
+            var st = node.strokes[s];
+            var strokeAlias = st.boundVariables && st.boundVariables.color;
+            if (strokeAlias && strokeAlias.id && !activeVariableIds[strokeAlias.id]) {
+              var sr = (st.type === 'SOLID' && st.color) ? st.color.r : 0;
+              var sg = (st.type === 'SOLID' && st.color) ? st.color.g : 0;
+              var sb = (st.type === 'SOLID' && st.color) ? st.color.b : 0;
+              brokenList.push({
+                nodeId: node.id,
+                nodeName: node.name,
+                variableId: strokeAlias.id,
+                property: 'stroke',
+                strokeIndex: s,
+                resolvedHex: rgbToHex(sr, sg, sb),
+                role: 'stroke'
+              });
+            }
+          }
+        }
+      }
+
+      var defaultMap = {
+        color: { light: { color: {
+          background: { neutral: { base: { $type: 'color', $value: '#FCFCFD' } } },
+          icon: { inverse: { $type: 'color', $value: '#FFFFFF' } },
+          text: { primary: { $type: 'color', $value: '#1C2024' }, secondary: { $type: 'color', $value: '#6B7280' }, disabled: { $type: 'color', $value: '#9CA3AF' } },
+          border: { default: { $type: 'color', $value: '#E5E7EB' } }
+        } } }
+      };
+      var hexToPath = {};
+      var hexToPaths = {};
+      function collectPaths(obj, prefix) {
+        if (!obj || typeof obj !== 'object') return;
+        if (obj.$type === 'color' && obj.$value) {
+          var hex = normalizeHex(obj.$value);
+          if (hex) {
+            var p = prefix || '';
+            if (!hexToPath[hex]) hexToPath[hex] = p;
+            if (!hexToPaths[hex]) hexToPaths[hex] = [];
+            if (hexToPaths[hex].indexOf(p) === -1) hexToPaths[hex].push(p);
+          }
+        }
+        for (var key in obj) {
+          if (obj.hasOwnProperty(key) && key !== '$type' && key !== '$value' && key !== '$description') {
+            var next = prefix ? prefix + '/' + key : key;
+            collectPaths(obj[key], next);
+          }
+        }
+      }
+      collectPaths(defaultMap, '');
+      function pickPathForRole(hex, role) {
+        var paths = hexToPaths[hex];
+        if (!paths || paths.length === 0) return hexToPath[hex];
+        if (role === 'text') {
+          for (var i = 0; i < paths.length; i++) if (paths[i].toLowerCase().indexOf('text') !== -1) return paths[i];
+        }
+        if (role === 'stroke') {
+          for (var j = 0; j < paths.length; j++) {
+            var lower = paths[j].toLowerCase();
+            if (lower.indexOf('border') !== -1 || lower.indexOf('stroke') !== -1) return paths[j];
+          }
+        }
+        return hexToPath[hex] || (paths && paths[0]);
+      }
+      function normalizePath(name) {
+        if (!name || typeof name !== 'string') return '';
+        return name.replace(/\./g, '/').replace(/\\/g, '/').toLowerCase();
+      }
+      var pathToVariable = {};
+      for (var vj = 0; vj < variables.length; vj++) {
+        var vv = variables[vj];
+        if (vv.resolvedType !== 'COLOR') continue;
+        var key = normalizePath(vv.name);
+        if (key && !pathToVariable[key]) pathToVariable[key] = vv;
+      }
+
+      var reportFixed = 0;
+      var reportFailed = [];
+      var reportDetails = [];
+
+      for (var bi = 0; bi < brokenList.length; bi++) {
+        var it = brokenList[bi];
+        var tokenDesc = it.property + (it.strokeIndex != null ? '[' + it.strokeIndex + ']' : '') + ' → ' + it.variableId;
+        reportDetails.push({
+          nodeId: it.nodeId,
+          nodeName: it.nodeName,
+          token: tokenDesc,
+          status: dryRun ? 'detected' : 'pending'
+        });
+
+        if (dryRun) continue;
+
+        var hex = normalizeHex(it.resolvedHex || '');
+        var path = pickPathForRole(hex, it.role);
+        if (!path) {
+          reportFailed.push({ nodeId: it.nodeId, nodeName: it.nodeName, reason: 'no token path for hex #' + hex });
+          reportDetails[reportDetails.length - 1].status = 'failed';
+          continue;
+        }
+        var pathKey = normalizePath(path);
+        var variable = pathToVariable[pathKey];
+        if (!variable) {
+          reportFailed.push({ nodeId: it.nodeId, nodeName: it.nodeName, reason: 'no variable for path ' + path });
+          reportDetails[reportDetails.length - 1].status = 'failed';
+          continue;
+        }
+
+        var targetNode = await figma.getNodeByIdAsync(it.nodeId);
+        if (!targetNode) {
+          reportFailed.push({ nodeId: it.nodeId, nodeName: it.nodeName, reason: 'node not found' });
+          reportDetails[reportDetails.length - 1].status = 'failed';
+          continue;
+        }
+        try {
+          var variableRef = await figma.variables.getVariableByIdAsync(variable.id);
+          if (!variableRef || variableRef.resolvedType !== 'COLOR') {
+            reportFailed.push({ nodeId: it.nodeId, nodeName: it.nodeName, reason: 'variable not color: ' + path });
+            reportDetails[reportDetails.length - 1].status = 'failed';
+            continue;
+          }
+          if (it.property === 'fill' && 'fills' in targetNode && targetNode.fills && targetNode.fills.length > 0) {
+            var fillsCopy = JSON.parse(JSON.stringify(targetNode.fills));
+            fillsCopy[0] = fillsCopy[0].type === 'SOLID' ? figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', variableRef) : figma.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 1 }, 'color', variableRef);
+            targetNode.fills = fillsCopy;
+            if ('fillStyleId' in targetNode && targetNode.fillStyleId) targetNode.fillStyleId = '';
+            reportFixed++;
+            reportDetails[reportDetails.length - 1].status = 'fixed';
+          } else if (it.property === 'stroke' && 'strokes' in targetNode && targetNode.strokes) {
+            var idx = it.strokeIndex != null ? it.strokeIndex : 0;
+            var strokesCopy = JSON.parse(JSON.stringify(targetNode.strokes));
+            strokesCopy[idx] = figma.variables.setBoundVariableForPaint(strokesCopy[idx], 'color', variableRef);
+            targetNode.strokes = strokesCopy;
+            if ('strokeStyleId' in targetNode && targetNode.strokeStyleId) targetNode.strokeStyleId = '';
+            reportFixed++;
+            reportDetails[reportDetails.length - 1].status = 'fixed';
+          } else {
+            reportFailed.push({ nodeId: it.nodeId, nodeName: it.nodeName, reason: 'could not apply' });
+            reportDetails[reportDetails.length - 1].status = 'failed';
+          }
+        } catch (e) {
+          reportFailed.push({ nodeId: it.nodeId, nodeName: it.nodeName, reason: e.message || String(e) });
+          reportDetails[reportDetails.length - 1].status = 'failed';
+        }
+      }
+
+      var reportSkipped = dryRun ? brokenList.length : 0;
+      figma.ui.postMessage({
+        type: 'FIX_BROKEN_TOKENS_RESULT',
+        requestId: msg.requestId,
+        success: true,
+        report: {
+          scanned: reportScanned,
+          broken: brokenList.length,
+          fixed: reportFixed,
+          skipped: reportSkipped,
+          failed: reportFailed,
+          details: reportDetails
+        }
+      });
+      if (reportFixed > 0) {
+        figma.notify(reportFixed + ' token(s) corrigidos', { timeout: 2000 });
+      }
+    } catch (error) {
+      var errMsg = error && error.message ? error.message : String(error);
+      console.error('🌉 [Desktop Bridge] Fix broken tokens error:', errMsg);
+      figma.ui.postMessage({
+        type: 'FIX_BROKEN_TOKENS_RESULT',
+        requestId: msg.requestId,
+        success: false,
+        error: errMsg,
+        report: { scanned: 0, broken: 0, fixed: 0, skipped: 0, failed: [], details: [] }
+      });
+    }
+  }
+
   else if (msg.type === 'REPAIR_AND_RELINK_BY_TOKEN_MAP' || msg.type === 'RUN_RECURSIVE_TOKEN_FIX') {
     try {
       if (msg.type === 'RUN_RECURSIVE_TOKEN_FIX') {
