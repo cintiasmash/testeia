@@ -1,0 +1,237 @@
+---
+description: Corrigir tokens de cor quebrados no Figma via MCP (Desktop Bridge). Usar quando o usuário pedir para corrigir tokens, fills quebrados, "?" em Selection colors, cores desvinculadas, ou qualquer operação de revinculação de tokens de cor no Figma.
+globs:
+alwaysApply: false
+---
+
+# Fix Broken Color Tokens – Figma via MCP
+
+## Pré-requisitos (verificar antes de qualquer operação)
+
+1. **Plugin Desktop Bridge** aberto no Figma Desktop (`Plugins → Development → Figma Desktop Bridge`)
+2. **MCP figma-console-mcp** conectado no Cursor (verificar em Settings → MCP)
+3. O plugin expõe as tools via WebSocket (porta 3055 ou 9223–9232)
+
+Se as tools abaixo não aparecerem, o patch do MCP foi perdido — ver seção "Recuperar tools extras".
+
+---
+
+## Mapa de tokens canônico
+
+Usar **sempre** este mapa hex → token para qualquer correção. Nunca aplicar hex direto.
+
+**Fonte única:** este mapa deve estar alinhado ao `figma-token-map.json` na raiz do projeto (variáveis do arquivo Figma). Regenerar com `figma_get_variables` se o arquivo mudar.
+
+| Hex (normalizado) | Token (alias) | VariableID |
+|---|---|---|
+| #fcfcfd | surface/default | 13853:22282 |
+| #f2f4f7 | surface/raised ou border/subtle | 13853:22259 / 13853:22340 |
+| #ffffff | surface/raised (fallback fundo claro) | 13853:22259 |
+| #1c2024 | text/primary ou icon/primary | 13853:22387 / 13853:22295 |
+| #8b8d98 | text/secondary | 13853:22375 |
+| #a9a9a9 | text/tertiary | 13853:22245 |
+| #d0d5dd | border/default | 13853:22222 |
+| #f2f4f7 | border/subtle | 13853:22340 |
+
+**Regra de role para ambiguidade:**
+- Nó `TEXT` → preferir token `text/*` (text/primary, text/secondary, text/tertiary)
+- Fill de fundo → preferir `surface/default` ou `surface/raised`
+- Stroke/borda → preferir `border/default` ou `border/subtle`
+- Ícone (cor escura) → `icon/primary`; fundo claro (#ffffff/#fcfcfd) → `surface/raised` ou `surface/default`
+
+---
+
+## Fluxo de decisão — qual tool usar
+
+```
+Usuário quer corrigir tokens?
+│
+├─ "na seleção" ou "neste componente"
+│   └─ RUN_RECURSIVE_TOKEN_FIX  (sem nodeId = usa seleção atual)
+│      ou figma_fix_broken_tokens { scope: "selection" }
+│
+├─ "na página atual"
+│   └─ figma_fix_broken_tokens { scope: "page" }
+│      ou figma_audit_and_link_unlinked_fills { nodeId: <pageId> }
+│
+├─ "neste nó específico" (tem nodeId)
+│   └─ figma_fix_broken_tokens { scope: "node", nodeId: "XXXX:YYYY" }
+│
+├─ "em todo o documento" / "global"
+│   └─ figma_fix_broken_tokens { scope: "global" }
+│      ou REPAIR_AND_RELINK_BY_TOKEN_MAP com scope { type: "document" }
+│
+└─ Só quero ver o relatório (sem corrigir)
+    └─ figma_scan_broken_bindings { nodeId: <opcional> }
+       ou figma_fix_broken_tokens { scope: "page", dryRun: true }
+```
+
+---
+
+## Receitas prontas (copiar e adaptar)
+
+### 1 — Escanear fills sem vínculo (auditoria, sem modificar)
+
+```
+figma_get_nodes_with_unlinked_fills
+parâmetros: {}   // página atual
+// ou:
+parâmetros: { nodeId: "1058:20863" }  // componente específico
+```
+
+### 2 — Escanear bindings quebrados ("?" em Selection colors)
+
+```
+figma_scan_broken_bindings
+parâmetros: {}   // página atual
+```
+
+### 3 — Corrigir seleção atual (recomendado para componentes)
+
+```
+RUN_RECURSIVE_TOKEN_FIX
+parâmetros: {}   // usa seleção atual no Figma
+// ou com nodeId explícito:
+parâmetros: { nodeId: "1058:20863" }
+```
+
+### 4 — Corrigir página inteira
+
+```
+figma_fix_broken_tokens
+parâmetros: { scope: "page" }
+```
+
+### 5 — Corrigir documento inteiro (GLOBAL — confirmar com usuário antes)
+
+```
+figma_fix_broken_tokens
+parâmetros: { scope: "global" }
+```
+
+### 6 — Corrigir com mapa semântico + primitivo explícito
+
+Usar paths que existam no `figma-token-map.json` (ex.: `color/light/color/surface/default`).
+
+```
+REPAIR_AND_RELINK_BY_TOKEN_MAP
+parâmetros:
+  semanticMap: {
+    "#fcfcfd": "color/light/color/surface/default",
+    "#ffffff": "color/light/color/surface/raised",
+    "#1c2024": "color/light/color/text/primary",
+    "#8b8d98": "color/light/color/text/secondary",
+    "#a9a9a9": "color/light/color/text/tertiary",
+    "#d0d5dd": "color/light/color/border/default",
+    "#f2f4f7": "color/light/color/border/subtle"
+  }
+  primitiveMap: {}
+  scope: { type: "page" }
+  // ou: scope: { type: "node", nodeId: "1058:20863" }
+  // ou: scope: { type: "document" }
+```
+
+### 7 — Vincular #1C2024 → text/primary em todo documento
+
+```
+figma_set_fill_variable
+// Para lote global, use REPAIR_AND_RELINK_BY_TOKEN_MAP com semanticMap
+// contendo apenas { "#1c2024": "color/light/color/text/primary" }
+// e scope: { type: "document" }
+```
+
+### 8 — Reparar bindings quebrados (substituir ? por cor sólida fallback)
+
+```
+figma_repair_broken_bindings
+parâmetros: { fallbackHex: "#6B7280" }   // opcional
+```
+
+---
+
+## Interpretar o resultado
+
+Após qualquer operação de correção, o resultado inclui:
+
+```json
+{
+  "scanned": 150,      // nós analisados
+  "broken": 12,        // bindings quebrados encontrados
+  "fixed": 10,         // corrigidos com sucesso
+  "skipped": 2,        // sem match no mapa de tokens
+  "failed": 0,         // erros durante aplicação
+  "details": [...]     // lista de nós com nodeId, name, tokenPath aplicado
+}
+```
+
+**Se `skipped > 0`:** os nós saltados têm cor sem match no mapa — reportar ao usuário com hex da cor e sugerir qual token usar.
+
+**Se `broken > 0` após correção:** rodar `figma_scan_broken_bindings` novamente para verificar residual.
+
+---
+
+## Regras obrigatórias
+
+- ❌ **Nunca** aplicar cor hex diretamente em fills/strokes — sempre via variável/token
+- ❌ **Nunca** rodar correção global sem confirmação explícita do usuário
+- ✅ Sempre remover `fillStyleId`/`strokeStyleId` quando aplicar uma variável (o token deve prevalecer)
+- ✅ Preferir `RUN_RECURSIVE_TOKEN_FIX` para seleção — ele usa o mapa padrão embutido
+- ✅ Para texto: garantir que o token aplicado tenha scope incluindo `TEXT_FILL`
+- ✅ Após correção em componente principal, verificar se variantes herdaram corretamente
+
+---
+
+## Fallback quando as tools MCP não estiverem disponíveis
+
+Se `RUN_RECURSIVE_TOKEN_FIX` ou `figma_fix_broken_tokens` não existirem (patch do MCP perdido ou não aplicado):
+
+1. Usar **`figma_execute`** com o script em **`figma-desktop-brigde/scripts/fix-broken-color-tokens.js`**.
+2. O script usa o **mesmo mapa canônico** desta regra (alinhado ao `figma-token-map.json`): hex → alias → variableId.
+3. Passar no código o `nodeId` do componente ou da página (ex.: `"1058:20863"`). O script percorre a árvore recursivamente, corrige fills/strokes quebrados ou desvinculados e remove `fillStyleId`/`strokeStyleId` ao aplicar variável.
+4. O agente deve injetar o `nodeId` correto no script antes de chamar `figma_execute` (ou usar seleção atual se o plugin enviar o nodeId da seleção).
+
+---
+
+## Recuperar tools extras (se total cair de 61 para 56)
+
+As tools `figma_fix_broken_tokens`, `RUN_RECURSIVE_TOKEN_FIX`, `REPAIR_AND_RELINK_BY_TOKEN_MAP`, `figma_scan_broken_bindings`, `figma_repair_broken_bindings` são patches sobre o figma-console-mcp.
+
+```bash
+# Verificar se patch-package está disponível
+npx patch-package figma-console-mcp
+
+# Se não tiver patch salvo, reaplicar manualmente:
+# Localizar cache do npx:
+ls ~/.npm/_npx/*/node_modules/figma-console-mcp/dist/
+
+# Editar dist/local.js (registrar tools) e
+# dist/core/websocket-connector.js (implementações)
+# Depois gerar patch:
+npx patch-package figma-console-mcp
+```
+
+Script de inicialização do MCP:
+```bash
+./start-figma-console-mcp.sh -y figma-console-mcp@latest
+```
+
+---
+
+## Exemplo de sessão completa no Cursor
+
+```
+Usuário: "Corrija os tokens quebrados no componente MoleculeBreadcrumbs"
+
+Agente:
+1. figma_scan_broken_bindings {}
+   → identifica 3 nós com "?" em Selection colors
+
+2. RUN_RECURSIVE_TOKEN_FIX { nodeId: "<id do componente>" }
+   → fixed: 3, skipped: 0
+   (Se a tool não existir: figma_execute com script fix-broken-color-tokens.js e nodeId do componente.)
+
+3. figma_get_nodes_with_unlinked_fills { nodeId: "<id>" }
+   → verifica se restam fills sem vínculo
+
+4. Reportar: "3 tokens corrigidos. Nenhum fill desvinculado restante."
+```
