@@ -1,0 +1,70 @@
+---
+description: "Tokens quebrados no Figma — só agir quando o usuário pedir explicitamente. Ativar quando disser 'corrija o token', 'arrume o fill', 'substitua a variável' ou similar. Nunca aplicar proativamente."
+alwaysApply: false
+---
+
+# Tokens quebrados no Figma — só agir quando pedido
+
+Esta rule **só é ativada** quando você disser algo como:
+- "corrija o token"
+- "arrume o fill"
+- "substitua a variável"
+- "revincule o token"
+- "fix the token"
+- ou similar
+
+**Nunca** aplicar correção de tokens no Figma de forma proativa. Se o usuário não pedir explicitamente, não sugerir nem executar.
+
+---
+
+## Quando ativada — regras obrigatórias
+
+### 1. Verificar origem do token antes de qualquer ação
+- Sempre verificar se o token é **local** (variável do próprio arquivo) ou de **biblioteca externa** antes de qualquer ação.
+- Usar `figma.variables.getVariableByIdAsync(id)` e/ou `figma.variables.getLocalVariablesAsync()` para distinguir.
+- Se for de biblioteca externa desconectada (ex.: "?" no painel), prosseguir com a substituição pela variável local equivalente.
+
+### 2. Operar página por página — nunca varrer o documento inteiro
+- **Nunca** tentar varrer o documento inteiro de uma vez (evita timeout do plugin).
+- Sempre operar **página por página**: usar `figma.currentPage` para scan e correção na página atual.
+- Se o usuário quiser outras páginas, ele navega no Figma para a próxima página e o assistente repete o fluxo.
+
+### 2.1 Escopo por URL do Figma ou node-id específico
+Quando o usuário fornecer uma **URL do Figma** (ex.: `https://www.figma.com/design/...`) ou um **node-id** específico (ex.: `1058:20863`):
+- O **escopo** da correção é **apenas aquele componente/nó** (e sua árvore de descendentes), **não** a página inteira.
+- Usar `figma.getNodeByIdAsync(nodeId)` para obter o nó; o scan e a correção aplicam-se somente a esse nó e a todos os seus filhos.
+- O **fluxo de aprovação continua igual**: mostrar quantos nós serão afetados (dentro desse componente), aguardar confirmação explícita ("Sim" ou "Aplicar") antes de aplicar.
+- Não expandir o escopo para a página ou outros componentes a menos que o usuário peça.
+
+### 3. Mostrar impacto e aguardar aprovação
+- Antes de aplicar qualquer alteração (seja na página inteira ou em um componente/node-id):
+  - Fazer o scan do escopo atual (página ou nó indicado) e informar **quantos nós** serão afetados.
+  - Aguardar a **aprovação explícita** do usuário antes de aplicar a correção.
+
+### 4. Substituição padrão
+- A substituição padrão para tokens de **biblioteca externa desconectada** é sempre pela **variável local de mesmo nome semântico** (ex.: mesmo `color/light/color/text/link/default` no arquivo local).
+- Consultar variáveis locais (ex.: `figma_get_variables` ou `getLocalVariablesAsync`) para identificar o `variableId` local equivalente.
+
+### 5. Nunca alterar sem confirmação
+- **Nunca** aplicar nenhuma alteração no Figma sem confirmação explícita do usuário.
+- Aceitar apenas respostas como **"Sim"**, **"Aplicar"**, **"Pode aplicar"** (ou equivalente claro) para executar a correção.
+- Se o usuário não confirmar, não executar.
+
+### 6. Após cada página corrigida
+- Após aplicar a correção em uma página, **parar** e **perguntar** se o usuário deseja avançar para a próxima página.
+- Exemplo: "Correção aplicada na página [Nome]. Deseja que eu escaneie e corrija a próxima página? Navegue até ela no Figma e avise."
+
+---
+
+## Resumo
+
+| Regra | O que fazer |
+|-------|-------------|
+| Ativação | Só quando o usuário pedir explicitamente ("corrija o token", "arrume o fill", etc.). Nunca proativo. |
+| Origem | Sempre verificar se token é local ou de biblioteca externa antes de agir. |
+| Escopo | Uma página por vez; nunca varrer o documento inteiro. **URL ou node-id** → escopo só aquele componente/nó. |
+| Visibilidade | Mostrar quantos nós serão afetados (no escopo: página ou componente). |
+| Aprovação | Aguardar aprovação explícita antes de aplicar (em cada página ou no componente indicado). |
+| Substituição | Token de biblioteca desconectada → variável local de mesmo nome semântico. |
+| Confirmação | Nunca alterar sem "Sim" ou "Aplicar" (ou equivalente). |
+| Próxima página | Após corrigir uma página, parar e perguntar se avança para a próxima. |
