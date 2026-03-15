@@ -81,10 +81,17 @@ parâmetros: { nodeId: "1058:20863" }  // componente específico
 
 ### 2 — Escanear bindings quebrados ("?" em Selection colors)
 
+O "?" no painel Selection colors vem de **`node.boundVariables`** (fills, strokes, opacity), não apenas de `node.fills[].boundVariable`. Sempre incluir no scan:
+
+- **`node.boundVariables.fills`**, **`node.boundVariables.strokes`**, **`node.boundVariables.opacity`** (e effects, topLeftRadius, etc. quando relevante)
+- Para cada variableId: `figma.variables.getVariableById(id)` e verificar se a variável pertence a uma coleção local (`figma.variables.getLocalVariableCollections()` / `getLocalVariableCollectionsAsync()`). Se não pertencer ou não resolver → token quebrado/externo.
+
 ```
 figma_scan_broken_bindings
 parâmetros: {}   // página atual
 ```
+
+Se usar `figma_execute` para scan manual: percorrer a árvore e, para cada nó, ler `node.boundVariables.fills`, `.strokes`, `.opacity` e avaliar cada variableId (local vs externo).
 
 ### 3 — Corrigir seleção atual (recomendado para componentes)
 

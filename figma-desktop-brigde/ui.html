@@ -395,7 +395,7 @@
       </div>
       <div class="error-msg" id="connection-error" style="display: none;"></div>
       <div class="help-text" id="file-check-result" style="margin-top: 6px; display: none;"></div>
-      <p class="help-text" style="margin-top: 8px;">A ponte usa WebSocket nas portas 9229, 9230, 9223–9232. No Figma Desktop, se o arquivo tem link (URL), já está salvo. Se não conectar mesmo com arquivo salvo: confira se o MCP está rodando no Cursor e se o plugin foi importado de <strong>figma-desktop-brigde</strong> (Plugins → Development → Import plugin from manifest).</p>
+      <p class="help-text" style="margin-top: 8px;">A ponte usa WebSocket nas portas 3920 (preferida), 3921 (fallback) ou 9223–9232. No Figma Desktop, se o arquivo tem link (URL), já está salvo. Se não conectar mesmo com arquivo salvo: confira se o MCP está rodando no Cursor e se o plugin foi importado de <strong>figma-desktop-brigde</strong> (Plugins → Development → Import plugin from manifest).</p>
     </div>
 
     <div class="section" id="history-on-comandos-section">
@@ -913,8 +913,8 @@
     // WEBSOCKET BRIDGE — connect on button click; show errors
     // ============================================================================
     (function() {
-      // Porta fixa 3845 (FIGMA_WS_PORT) para evitar conflito; fallback nas demais
-      var wsPorts = [3845, 9225, 9229, 9230, 9223, 9224, 9226, 9227, 9228, 9231, 9232];
+      // Portas 3920 (preferida) e 3921 (fallback quando MCP sobe na 3921 se 3920 estiver ocupada)
+      var wsPorts = [3920, 3921];
       var wsPort = wsPorts[0];
       var ws = null;
       var wsReconnectDelay = 500;
@@ -1023,7 +1023,7 @@
             setTimeout(wsConnect, wsReconnectDelay);
             wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, wsMaxReconnectDelay);
           } else {
-            lastConnectionError = 'Nenhum servidor MCP encontrado nas portas 3845, 9223–9232. Confira: 1) Cursor está aberto com o MCP figma-console ativo. 2) Reinicie o MCP nas configurações do Cursor. 3) Use o plugin importado de figma-desktop-brigde.';
+            lastConnectionError = 'Nenhum servidor MCP nas portas 3920/3921. Confira: 1) Cursor está aberto com o MCP figma-console ativo. 2) No mcp.json o figma-console tem env FIGMA_WS_PORT=3920. 3) Reinicie o MCP nas configurações do Cursor. Se a 3920 estiver ocupada, use no terminal: fixfigma (ou kill do processo na 3920).';
             setConnectionState('error', lastConnectionError);
           }
         }
@@ -1233,13 +1233,16 @@
       window.__wsForwardPageChange = function(data) {
         if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'PAGE_CHANGE', data: data }));
       };
+      window.__wsForwardTokenScanResult = function(data) {
+        if (wsConnected && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'TOKEN_SCAN_RESULT', data: data }));
+      };
     })();
 
     // ============================================================================
     // MESSAGE HANDLER (from plugin worker)
     // ============================================================================
     window.onmessage = (event) => {
-      var msg = event.data.pluginMessage;
+      var msg = event.data.pluginMessage || event.data;
       if (!msg) return;
 
       var handleResult = function(resultType, dataKey) {
@@ -1401,6 +1404,9 @@
         case 'CONSOLE_CAPTURE': if (window.__wsForwardConsoleCapture) window.__wsForwardConsoleCapture(msg); break;
         case 'SELECTION_CHANGE': if (window.__wsForwardSelectionChange) window.__wsForwardSelectionChange(msg.data); break;
         case 'PAGE_CHANGE': if (window.__wsForwardPageChange) window.__wsForwardPageChange(msg.data); break;
+        case 'TOKEN_SCAN_RESULT':
+          if (msg.payload != null && window.__wsForwardTokenScanResult) window.__wsForwardTokenScanResult(msg.payload);
+          break;
       }
     };
 

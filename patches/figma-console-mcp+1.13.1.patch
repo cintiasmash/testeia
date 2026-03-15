@@ -1,0 +1,150 @@
+diff --git a/node_modules/figma-console-mcp/dist/local.js b/node_modules/figma-console-mcp/dist/local.js
+old mode 100755
+new mode 100644
+index 5a6771e..2311d1d
+--- a/node_modules/figma-console-mcp/dist/local.js
++++ b/node_modules/figma-console-mcp/dist/local.js
+@@ -371,6 +371,143 @@ If Design Systems Assistant MCP is not available, install it from: https://githu
+      * Register all MCP tools
+      */
+     registerTools() {
++        // Tool: Fix unlinked tokens (boundVariables that don't resolve locally)
++        this.server.tool("figma_fix_unlinked_tokens", "Fix color tokens that are bound to variables which do not resolve locally (e.g. external library or missing). Receives a nodeId, traverses the entire subtree, and for each node reads boundVariables.fills and boundVariables.strokes. For any paint with a variable that does not resolve locally, finds a local variable by exact name first, then by fallback hex; rebinds the paint to the local token. Returns a list of corrected nodes with nodeId, nodeName, kind (fill/stroke), tokenOld, and tokenNew. Requires Desktop Bridge plugin.", {
++            nodeId: z
++                .string()
++                .describe("The node ID of the root (component, frame, or page) to traverse. All descendants will be scanned and fixed."),
++        }, async ({ nodeId }) => {
++            try {
++                const connector = await this.getDesktopConnector();
++                const script = `
++  var nodeId = ${JSON.stringify(nodeId)};
++  function rgbToHex(c) {
++    if (!c || typeof c.r !== 'number') return '';
++    var r = Math.round(Math.max(0, Math.min(1, c.r)) * 255);
++    var g = Math.round(Math.max(0, Math.min(1, c.g || 0)) * 255);
++    var b = Math.round(Math.max(0, Math.min(1, c.b || 0)) * 255);
++    var pad = function(n) { var h = n.toString(16); return h.length === 1 ? '0' + h : h; };
++    return '#' + pad(r) + pad(g) + pad(b);
++  }
++  function normalizeHex(hex) {
++    if (!hex || typeof hex !== 'string') return '';
++    return hex.replace(/^#/, '').toLowerCase();
++  }
++  var root = await figma.getNodeByIdAsync(nodeId);
++  if (!root) return { error: 'Node not found: ' + nodeId, corrected: [] };
++  var collections = await figma.variables.getLocalVariableCollectionsAsync();
++  var localVariableIds = new Set();
++  var byName = {};
++  var byHex = {};
++  for (var c = 0; c < collections.length; c++) {
++    var col = collections[c];
++    var modeId = col.defaultModeId || (col.modes && col.modes.length ? col.modes[0].modeId : null);
++    for (var v = 0; v < col.variableIds.length; v++) {
++      var id = col.variableIds[v];
++      localVariableIds.add(id);
++      var variable = await figma.variables.getVariableByIdAsync(id);
++      if (!variable || variable.resolvedType !== 'COLOR') continue;
++      byName[variable.name] = variable;
++      if (modeId && variable.valuesByMode && variable.valuesByMode[modeId]) {
++        var val = variable.valuesByMode[modeId];
++        if (val && typeof val.r === 'number') {
++          var hex = rgbToHex(val);
++          if (hex) byHex[normalizeHex(hex)] = variable;
++        }
++      }
++    }
++  }
++  var corrected = [];
++  async function walk(n) {
++    if (!n || !('boundVariables' in n)) {
++      if (n && n.children) for (var i = 0; i < n.children.length; i++) await walk(n.children[i]);
++      return;
++    }
++    var bv = n.boundVariables;
++    if (bv.fills && Array.isArray(bv.fills) && n.fills !== figma.mixed && Array.isArray(n.fills)) {
++      var fills = n.fills.slice();
++      var changed = false;
++      for (var i = 0; i < bv.fills.length && i < fills.length; i++) {
++        var alias = bv.fills[i];
++        if (!alias || alias.type !== 'VARIABLE_ALIAS' || !alias.id) continue;
++        var v = await figma.variables.getVariableByIdAsync(alias.id);
++        var isLocal = v && localVariableIds.has(v.id);
++        if (isLocal) continue;
++        var paint = fills[i];
++        if (!paint || paint.type !== 'SOLID') continue;
++        var fallbackHex = rgbToHex(paint.color);
++        var normHex = normalizeHex(fallbackHex);
++        var tokenOld = (v && v.name) ? v.name : alias.id;
++        var localVar = (v && v.name && byName[v.name]) ? byName[v.name] : byHex[normHex];
++        if (!localVar) continue;
++        fills[i] = figma.variables.setBoundVariableForPaint(paint, 'color', localVar);
++        changed = true;
++        corrected.push({ nodeId: n.id, nodeName: n.name, kind: 'fill', tokenOld: tokenOld, tokenNew: localVar.name });
++      }
++      if (changed) {
++        n.fills = fills;
++        if (n.fillStyleId) n.fillStyleId = '';
++      }
++    }
++    if (bv.strokes && Array.isArray(bv.strokes) && n.strokes !== figma.mixed && Array.isArray(n.strokes)) {
++      var strokes = n.strokes.slice();
++      var changedStrokes = false;
++      for (var j = 0; j < bv.strokes.length && j < strokes.length; j++) {
++        var aliasS = bv.strokes[j];
++        if (!aliasS || aliasS.type !== 'VARIABLE_ALIAS' || !aliasS.id) continue;
++        var vS = await figma.variables.getVariableByIdAsync(aliasS.id);
++        var isLocalS = vS && localVariableIds.has(vS.id);
++        if (isLocalS) continue;
++        var paintS = strokes[j];
++        if (!paintS || paintS.type !== 'SOLID') continue;
++        var fallbackHexS = rgbToHex(paintS.color);
++        var normHexS = normalizeHex(fallbackHexS);
++        var tokenOldS = (vS && vS.name) ? vS.name : aliasS.id;
++        var localVarS = (vS && vS.name && byName[vS.name]) ? byName[vS.name] : byHex[normHexS];
++        if (!localVarS) continue;
++        strokes[j] = figma.variables.setBoundVariableForPaint(paintS, 'color', localVarS);
++        changedStrokes = true;
++        corrected.push({ nodeId: n.id, nodeName: n.name, kind: 'stroke', tokenOld: tokenOldS, tokenNew: localVarS.name });
++      }
++      if (changedStrokes) {
++        n.strokes = strokes;
++        if (n.strokeStyleId) n.strokeStyleId = '';
++      }
++    }
++    if (n.children) for (var k = 0; k < n.children.length; k++) await walk(n.children[k]);
++  }
++  await walk(root);
++  return { corrected: corrected };
++`;
++                const result = await connector.executeCodeViaUI(script, 15000);
++                if (result.error) {
++                    return {
++                        content: [{ type: "text", text: JSON.stringify({ error: result.error, corrected: [] }) }],
++                        isError: true,
++                    };
++                }
++                const corrected = (result.result && result.result.corrected) ? result.result.corrected : [];
++                const summary = result.result && result.result.error ? result.result.error : null;
++                return {
++                    content: [{
++                        type: "text",
++                        text: JSON.stringify({
++                            success: true,
++                            correctedCount: corrected.length,
++                            corrected,
++                            ...(summary ? { message: summary } : {}),
++                        }, null, 2),
++                    }],
++                };
++            }
++            catch (error) {
++                const errMsg = error instanceof Error ? error.message : String(error);
++                return {
++                    content: [{ type: "text", text: JSON.stringify({ error: errMsg, corrected: [] }) }],
++                    isError: true,
++                };
++            }
++        });
+         // Tool 1: Get Console Logs
+         this.server.tool("figma_get_console_logs", "Retrieve console logs from Figma Desktop. FOR PLUGIN DEVELOPERS: This works immediately - no navigation needed! Just check logs, run your plugin in Figma Desktop, check logs again. All plugin logs ([Main], [Swapper], etc.) appear instantly.", {
+             count: z

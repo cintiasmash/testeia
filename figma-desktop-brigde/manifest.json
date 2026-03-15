@@ -9,8 +9,8 @@
   "permissions": ["teamlibrary"],
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["http://localhost", "ws://localhost", "ws://localhost:3055", "ws://localhost:3845", "ws://localhost:9223", "ws://localhost:9224", "ws://localhost:9225", "ws://localhost:9226", "ws://localhost:9227", "ws://localhost:9228", "ws://localhost:9229", "ws://localhost:9230", "ws://localhost:9231", "ws://localhost:9232"],
-    "reasoning": "Connects to local MCP server via WebSocket (port 3055 or 9223-9232, figma-console-mcp compatible).",
-    "devAllowedDomains": ["http://localhost", "ws://localhost", "ws://localhost:3055", "ws://localhost:3845", "ws://localhost:9223", "ws://localhost:9224", "ws://localhost:9225", "ws://localhost:9226", "ws://localhost:9227", "ws://localhost:9228", "ws://localhost:9229", "ws://localhost:9230", "ws://localhost:9231", "ws://localhost:9232"]
+    "allowedDomains": ["http://localhost", "ws://localhost", "ws://localhost:3055", "ws://localhost:3920", "ws://localhost:3921", "ws://localhost:9223", "ws://localhost:9224", "ws://localhost:9225", "ws://localhost:9226", "ws://localhost:9227", "ws://localhost:9228", "ws://localhost:9229", "ws://localhost:9230", "ws://localhost:9231", "ws://localhost:9232"],
+    "reasoning": "Connects to local MCP server via WebSocket (port 3920 preferred, or 3055 / 9223-9232, figma-console-mcp compatible).",
+    "devAllowedDomains": ["http://localhost", "ws://localhost", "ws://localhost:3055", "ws://localhost:3920", "ws://localhost:3921", "ws://localhost:9223", "ws://localhost:9224", "ws://localhost:9225", "ws://localhost:9226", "ws://localhost:9227", "ws://localhost:9228", "ws://localhost:9229", "ws://localhost:9230", "ws://localhost:9231", "ws://localhost:9232"]
   }
 }
