@@ -25,7 +25,13 @@ Quando o usuário pedir para **criar** algo (componente, tela, card, variável, 
   - **Hierarchy:** Root → Container → Stack → Block → Element.
   - **Dimensões:** usar `dimension-*` (ex.: dimension-4 = 16) para padding/gap; `size-*` para ícones/avatares; radius conforme composite (radius-200, radius-300, radius-400).
   - **Tipografia:** somente **Roboto** (Regular, Medium, Semi Bold, Bold), conforme `tokens/primitives.json` e `tokens/typography.json`. **Nunca usar Inter** nem outra fonte. No Figma: carregar Roboto (`figma.loadFontAsync`), definir `text.fontName` e só depois `text.characters`; ver [figma-desktop-brigde/.cursor/rules/figma-tokens-from-json.mdc](figma-desktop-brigde/.cursor/rules/figma-tokens-from-json.mdc).
-  - **Cores:** apenas tokens semânticos (surface/default, surface/raised, text/primary, text/secondary, text/tertiary, border/subtle, etc.). Nunca hex solto; no Figma, vincular a variáveis ou usar valores do mapa e depois `run_recursive_token_fix` na seleção se necessário.
+  - **Cores:** apenas tokens semânticos definidos em `figma-token-map.json`. Nunca hex solto. Ao criar ou corrigir, consultar o mapa para encontrar o token correto pelo nome ou pelo hex — se o token existir no mapa, vincular a variável; se não existir no mapa, não inventar nem aplicar hex, e sinalizar que o token está ausente do mapa. Após qualquer criação ou correção, rodar `run_recursive_token_fix` na seleção para garantir que nenhum fill ou stroke ficou sem vínculo.
+  - Se um fill ou stroke estiver como hex solto (sem vínculo a variável):
+    - Consultar figma-token-map.json para encontrar o token pelo hex
+    - Se encontrar → vincular à variável do mapa imediatamente
+    - Se não encontrar → não aplicar hex, rodar figma_get_variables para buscar a variável correta no arquivo, adicionar no figma-token-map.json e só então vincular
+    - Após qualquer correção → rodar run_recursive_token_fix na seleção
+    - Nunca deixar um nó com hex solto sem reportar — se não conseguir vincular, avisar qual nodeId e qual hex ficou sem token
 
 ## 3. Integridade de tokens (Figma)
 

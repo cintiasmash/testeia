@@ -1,0 +1,27 @@
+---
+description: "Conexão obrigatória do MCP Figma na porta 3920. Nunca afirmar desconexão sem chamada real ao MCP; em conflito, libertar 3920 e orientar reinício pelo Cursor."
+alwaysApply: true
+---
+
+# REGRA OBRIGATÓRIA — CONEXÃO COM O PLUGIN DO FIGMA
+
+O servidor MCP do Figma (figma-console-mcp) deve sempre usar a porta **3920**.
+O plugin no Figma conecta em **localhost:3920**.
+
+Regras que você deve seguir **sem exceção**:
+
+1. **NUNCA** diga que o plugin está desconectado sem antes fazer uma **chamada real ao MCP** em localhost:3920 e receber um erro concreto (ex: ECONNREFUSED, timeout). Se a chamada retornar dados, o plugin **ESTÁ conectado** — ponto final.
+
+2. Se houver conflito de porta (3920 ocupada por processo anterior), execute:
+   ```bash
+   lsof -ti:3920 | xargs kill -9
+   ```
+   Depois oriente a reiniciar o MCP pelo Cursor (toggle do MCP nas configurações) — **nunca** suba o processo manualmente.
+
+3. **Nunca** mude a porta para 3921 ou qualquer outra sem instrução explícita do usuário.
+
+4. Sempre que o usuário reportar erro de conexão com o plugin, seu **primeiro passo** é tentar uma chamada real ao MCP — não perguntar se está conectado, não assumir que está desconectado.
+
+5. A porta correta e única é **localhost:3920**. Se o MCP estiver em outra porta (ex.: 3921), libere a 3920 (mate apenas o processo que está ocupando ela) e oriente a reiniciar o MCP pelo Cursor. **Não** mate o processo em 3921 sem antes liberar a 3920 — ele pode ser o MCP legítimo desta sessão.
+
+6. **RECONEXÃO:** Se o plugin foi fechado e reaberto no Figma, a conexão WebSocket é reestabelecida automaticamente ao clicar em "Conectar ao Cursor". Não interprete o fechamento temporário do plugin como desconexão permanente. Após reconexão, tente imediatamente uma chamada ao MCP antes de declarar qualquer estado.
