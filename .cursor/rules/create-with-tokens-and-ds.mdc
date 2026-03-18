@@ -35,7 +35,12 @@ Quando o usuário pedir para **criar** algo (componente, tela, card, variável, 
 
 ## 3. Integridade de tokens (Figma)
 
-- Seguir também [figma-token-integrity.mdc](../../figma-desktop-brigde/.cursor/rules/figma-token-integrity.mdc): nunca aplicar cor sólida (hex) em fills/strokes; usar variável do sistema. Ao corrigir tokens, usar `run_recursive_token_fix`.
+Ao criar ou editar qualquer elemento no Figma, imediatamente após qualquer ação:
+
+- Rodar figma_fix_unlinked_tokens no nodeId criado/editado
+- Se ainda houver fills ou strokes hex soltos → rodar figma_execute com o audit-and-fix-unlinked-tokens.js no mesmo nodeId
+- Só considerar a tarefa concluída quando não houver nenhum fill ou stroke sem vínculo a variável
+- Se após os dois passos ainda restar hex solto → reportar nodeId e hex, nunca silenciar o erro
 
 ## Resumo
 

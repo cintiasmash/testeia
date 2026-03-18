@@ -1,0 +1,63 @@
+---
+description: Aplicar automaticamente tokens de cor e tipografia quando fills, strokes ou fontes estiverem soltos (hex ou fonte sem vínculo). Sempre ativo ao criar ou editar qualquer elemento no Figma.
+globs:
+alwaysApply: true
+---
+
+# Auto-fix: Cores e Tipografia sem token
+
+## Regra de cor — fill ou stroke hex solto
+
+Quando qualquer fill ou stroke estiver como hex solto (sem variável vinculada), seguir este fluxo obrigatório:
+
+1. Normalizar o hex para lowercase (ex.: #FFFFFF → #ffffff)
+2. Consultar o mapa abaixo para encontrar o token correspondente
+3. Se encontrar → vincular à variável do mapa imediatamente via MCP
+4. Se não encontrar → rodar `figma_get_variables` para buscar cor similar no arquivo, escolher o token mais próximo semanticamente (por role: fundo, texto, borda, ícone) e vincular
+5. Após vincular → rodar `figma_fix_unlinked_tokens` no nodeId para corrigir bindings quebrados; se ainda restar hex solto, rodar `figma_execute` com o script `figma-desktop-brigde/scripts/audit-and-fix-unlinked-tokens.js` no mesmo nodeId
+6. Se não conseguir vincular → reportar nodeId e hex, nunca silenciar
+
+## Mapa hex → token
+
+| Hex | Token | VariableID |
+|---|---|---|
+| #fcfcfd | surface/default | VariableID:13853:22282 |
+| #ffffff | surface/raised | VariableID:13853:22259 |
+| #1c2024 | text/primary | VariableID:13853:22387 |
+| #8b8d98 | text/secondary | VariableID:13853:22375 |
+| #a9a9a9 | text/tertiary | VariableID:13853:22245 |
+| #d0d5dd | border/default | VariableID:13853:22222 |
+| #f2f4f7 | border/subtle | VariableID:13853:22340 |
+| #1c2024 (ícone) | icon/primary | VariableID:13853:22295 |
+
+**Regra de role para ambiguidade:**
+- Nó TEXT → preferir text/primary, text/secondary ou text/tertiary
+- Fill de fundo/container → preferir surface/default ou surface/raised
+- Stroke/borda → preferir border/default ou border/subtle
+- Ícone → icon/primary
+- Hex sem match exato → escolher token mais próximo por luminosidade e role; nunca deixar hex solto
+
+## Regra de tipografia — fonte sem vínculo
+
+Quando um nó TEXT tiver fontFamily, fontWeight ou fontSize sem vínculo a token, seguir:
+
+1. Identificar o estilo pelo fontWeight + fontSize:
+   - weight 700 + grande → Display/Large ou Display/Medium
+   - weight 600 + grande → Headline/Large ou Headline/Medium
+   - weight 500 + médio → Title/Large, Title/Medium ou Title/Small
+   - weight 700 + médio → Title/Bold
+   - weight 400 + médio → Body/Large
+   - weight 400 + pequeno → Body/Medium ou Body/Small
+   - weight 600 + pequeno → Body/Semibold ou Caption/1 Strong
+   - weight 500 + pequeno → Label/Large ou Label/Medium
+2. Aplicar o token de tipografia correspondente de `tokens/typography.json`
+3. Garantir que fontFamily seja sempre **Roboto** — nunca Inter ou outra fonte
+4. Após aplicar → verificar se o vínculo foi aplicado corretamente
+
+## Regra geral
+
+- ❌ Nunca deixar hex solto em fill ou stroke
+- ❌ Nunca deixar fonte sem token de tipografia
+- ❌ Nunca usar Inter ou outra fonte fora do DS
+- ✅ Toda tarefa só é concluída quando fills, strokes e fontes estiverem vinculados a tokens
+- ✅ Se restar qualquer item sem vínculo → reportar explicitamente com nodeId
