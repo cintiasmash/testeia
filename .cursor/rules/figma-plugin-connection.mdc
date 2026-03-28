@@ -6,7 +6,8 @@ alwaysApply: true
 # REGRA OBRIGATÓRIA — CONEXÃO COM O PLUGIN DO FIGMA
 
 O servidor MCP do Figma (figma-console-mcp) deve sempre usar a porta **3920**.
-O plugin no Figma conecta em **localhost:3920**.
+No `mcp.json` do Cursor, o servidor **figma-console** deve incluir `FIGMA_WS_PORT=3920` e **`FIGMA_WS_STRICT_PORT=1`** para o pacote **não** fazer fallback para 3921–3929 (comportamento padrão do npm).
+O plugin **Figma Desktop Bridge** deste repositório conecta só em **localhost:3920**.
 
 Regras que você deve seguir **sem exceção**:
 
@@ -22,6 +23,6 @@ Regras que você deve seguir **sem exceção**:
 
 4. Sempre que o usuário reportar erro de conexão com o plugin, seu **primeiro passo** é tentar uma chamada real ao MCP — não perguntar se está conectado, não assumir que está desconectado.
 
-5. A porta correta e única é **localhost:3920**. Se o MCP estiver em outra porta (ex.: 3921), libere a 3920 (mate apenas o processo que está ocupando ela) e oriente a reiniciar o MCP pelo Cursor. **Não** mate o processo em 3921 sem antes liberar a 3920 — ele pode ser o MCP legítimo desta sessão.
+5. A porta correta e única é **localhost:3920**. Com `FIGMA_WS_STRICT_PORT=1`, não deve existir servidor WebSocket do MCP noutra porta; se algo ainda escutar em 3921, é lixo de sessão antiga — libertar **3920**, reiniciar o MCP e ignorar 3921.
 
 6. **RECONEXÃO:** Se o plugin foi fechado e reaberto no Figma, a conexão WebSocket é reestabelecida automaticamente ao clicar em "Conectar ao Cursor". Não interprete o fechamento temporário do plugin como desconexão permanente. Após reconexão, tente imediatamente uma chamada ao MCP antes de declarar qualquer estado.

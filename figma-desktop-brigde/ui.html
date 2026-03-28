@@ -395,7 +395,7 @@
       </div>
       <div class="error-msg" id="connection-error" style="display: none;"></div>
       <div class="help-text" id="file-check-result" style="margin-top: 6px; display: none;"></div>
-      <p class="help-text" style="margin-top: 8px;">A ponte usa WebSocket nas portas 3920 (preferida), 3921 (fallback) ou 9223–9232. No Figma Desktop, se o arquivo tem link (URL), já está salvo. Se não conectar mesmo com arquivo salvo: confira se o MCP está rodando no Cursor e se o plugin foi importado de <strong>figma-desktop-brigde</strong> (Plugins → Development → Import plugin from manifest).</p>
+      <p class="help-text" style="margin-top: 8px;">A ponte usa WebSocket apenas na porta <strong>3920</strong> (definida no projeto). No Figma Desktop, se o arquivo tem link (URL), já está salvo. Se não conectar: confira se o MCP figma-console está ativo no Cursor com <code>FIGMA_WS_PORT=3920</code> e <code>FIGMA_WS_STRICT_PORT=1</code>, reinicie o MCP e importe o plugin de <strong>figma-desktop-brigde</strong> (Plugins → Development → Import plugin from manifest).</p>
     </div>
 
     <div class="section" id="history-on-comandos-section">
@@ -913,8 +913,8 @@
     // WEBSOCKET BRIDGE — connect on button click; show errors
     // ============================================================================
     (function() {
-      // Portas 3920 (preferida) e 3921 (fallback quando MCP sobe na 3921 se 3920 estiver ocupada)
-      var wsPorts = [3920, 3921];
+      // Porta fixa do projeto — deve coincidir com FIGMA_WS_PORT / FIGMA_WS_STRICT_PORT no mcp.json do Cursor
+      var wsPorts = [3920];
       var wsPort = wsPorts[0];
       var ws = null;
       var wsReconnectDelay = 500;
@@ -1023,7 +1023,7 @@
             setTimeout(wsConnect, wsReconnectDelay);
             wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, wsMaxReconnectDelay);
           } else {
-            lastConnectionError = 'Nenhum servidor MCP nas portas 3920/3921. Confira: 1) Cursor está aberto com o MCP figma-console ativo. 2) No mcp.json o figma-console tem env FIGMA_WS_PORT=3920. 3) Reinicie o MCP nas configurações do Cursor. Se a 3920 estiver ocupada, use no terminal: fixfigma (ou kill do processo na 3920).';
+            lastConnectionError = 'Nenhum servidor MCP na porta 3920. Confira: 1) Cursor com MCP figma-console ativo. 2) No mcp.json: FIGMA_WS_PORT=3920 e FIGMA_WS_STRICT_PORT=1. 3) Reinicie o MCP no Cursor. 4) Se a 3920 estiver ocupada: lsof -ti:3920 | xargs kill -9 e reinicie o MCP.';
             setConnectionState('error', lastConnectionError);
           }
         }

@@ -1,7 +1,7 @@
 diff --git a/node_modules/figma-console-mcp/dist/local.js b/node_modules/figma-console-mcp/dist/local.js
 old mode 100755
 new mode 100644
-index 5a6771e..2311d1d
+index 5a6771e..1795ceb
 --- a/node_modules/figma-console-mcp/dist/local.js
 +++ b/node_modules/figma-console-mcp/dist/local.js
 @@ -371,6 +371,143 @@ If Design Systems Assistant MCP is not available, install it from: https://githu
@@ -148,3 +148,29 @@ index 5a6771e..2311d1d
          // Tool 1: Get Console Logs
          this.server.tool("figma_get_console_logs", "Retrieve console logs from Figma Desktop. FOR PLUGIN DEVELOPERS: This works immediately - no navigation needed! Just check logs, run your plugin in Figma Desktop, check logs again. All plugin logs ([Main], [Swapper], etc.) appear instantly.", {
              count: z
+@@ -4493,7 +4630,8 @@ return {
+             this.wsPreferredPort = parseInt(process.env.FIGMA_WS_PORT || String(DEFAULT_WS_PORT), 10);
+             // Clean up any stale port files from crashed instances before trying to bind
+             cleanupStalePortFiles();
+-            const portsToTry = getPortRange(this.wsPreferredPort);
++            const strictWsPort = ['1', 'true', 'yes'].includes(String(process.env.FIGMA_WS_STRICT_PORT || '').toLowerCase());
++            const portsToTry = strictWsPort ? [this.wsPreferredPort] : getPortRange(this.wsPreferredPort);
+             let boundPort = null;
+             for (const port of portsToTry) {
+                 try {
+@@ -4538,8 +4676,13 @@ return {
+                     code: "EADDRINUSE",
+                     port: this.wsPreferredPort,
+                 };
+-                const rangeEnd = this.wsPreferredPort + portsToTry.length - 1;
+-                logger.warn({ portRange: `${this.wsPreferredPort}-${rangeEnd}` }, "All WebSocket ports in range are in use — running without WebSocket transport");
++                if (strictWsPort) {
++                    logger.warn({ port: this.wsPreferredPort }, "WebSocket port is in use — FIGMA_WS_STRICT_PORT is set: not using fallback ports. Free the port (e.g. lsof -ti:3920 | xargs kill -9) and restart the MCP in Cursor.");
++                }
++                else {
++                    const rangeEnd = this.wsPreferredPort + portsToTry.length - 1;
++                    logger.warn({ portRange: `${this.wsPreferredPort}-${rangeEnd}` }, "All WebSocket ports in range are in use — running without WebSocket transport");
++                }
+             }
+             if (this.wsServer) {
+                 // Log when plugin files connect/disconnect (with file identity)
